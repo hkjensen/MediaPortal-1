@@ -899,7 +899,7 @@ namespace MediaPortal.Configuration.Sections
       if (movie.ID >= 0)
       {
         // Title suffix for problem with covers and movie with the same name
-        string titleExt = movie.Title + "{" + movie.ID + "}";
+        string titleExt = Util.Utils.GetCoverFilename(movie.ID, movie.IMDBNumber, movie.Title);
         string file = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
 
         if (File.Exists(file) && !_isRefreshing)
@@ -1066,6 +1066,7 @@ namespace MediaPortal.Configuration.Sections
         ListViewItem listItem = listViewAllGenres.SelectedItems[i];
 
         listViewGenres.Items.Add(listItem.Text);
+        VideoDatabase.AddGenreToMovie(CurrentMovie.ID, listItem.Text);
       }
 
       for (int i = listViewAllGenres.SelectedItems.Count - 1; i >= 0; i--)
@@ -1082,6 +1083,7 @@ namespace MediaPortal.Configuration.Sections
       {
         ListViewItem listItem = listViewGenres.SelectedItems[i];
         listViewAllGenres.Items.Add(listItem.Text);
+        VideoDatabase.RemoveGenreForMovie(CurrentMovie.ID, listItem.Text);
       }
 
       for (int i = listViewGenres.SelectedItems.Count - 1; i >= 0; --i)
@@ -1396,7 +1398,7 @@ namespace MediaPortal.Configuration.Sections
 
       // Fanart
       string fileArtMovie = string.Empty;
-      FanArt.GetFanArtfilename(movieDetails.ID, 0, out fileArtMovie);
+      FanArt.GetFanArtfilename(movieDetails.IMDBNumber,movieDetails.ID, 0, out fileArtMovie);
       pictureBoxFanArt.ImageLocation = fileArtMovie;
       // End fanart
 
@@ -1405,7 +1407,7 @@ namespace MediaPortal.Configuration.Sections
       tabControl2.Enabled = true; // Subtab options for main
       tabControl1.Enabled = true; // Main tab (settings, scan, editor)
 
-      UpdateActiveMovieImageAndThumbs(tbImageLocation.Text, CurrentMovie.ID, CurrentMovie.Title);
+      UpdateActiveMovieImageAndThumbs(tbImageLocation.Text, CurrentMovie.ID, movieDetails.IMDBNumber, CurrentMovie.Title);
       RefreshMovie(movieDetails.ID, cbTitle.SelectedIndex);
     }
 
@@ -1507,7 +1509,7 @@ namespace MediaPortal.Configuration.Sections
       IMDBMovie details = CurrentMovie;
       if (details.ID >= 0)
       {
-        VideoDatabase.RemoveGenresForMovie(details.ID);
+        //VideoDatabase.RemoveGenresForMovie(details.ID);
         VideoDatabase.RemoveFilesForMovie(details.ID);
       }
       else
@@ -1601,7 +1603,7 @@ namespace MediaPortal.Configuration.Sections
       }
       else
       {
-        MessageBox.Show("Movie info saved");
+        //MessageBox.Show("Movie info saved");
       }
       
       // Refresh movies if new is added manualy
@@ -1611,7 +1613,7 @@ namespace MediaPortal.Configuration.Sections
       }
       else // Refresh selected
       {
-        UpdateActiveMovieImageAndThumbs(tbImageLocation.Text, CurrentMovie.ID, CurrentMovie.Title);
+        UpdateActiveMovieImageAndThumbs(tbImageLocation.Text, CurrentMovie.ID, CurrentMovie.IMDBNumber, CurrentMovie.Title);
         RefreshMovie(details.ID, cbTitle.SelectedIndex);
       }
     }
@@ -2671,11 +2673,11 @@ namespace MediaPortal.Configuration.Sections
         }
         else
         {
-          tbFanartLocation.Text = FanArt.SetFanArtFileName(item.Movie.ID, _fanartImgIndex);
+          tbFanartLocation.Text = FanArt.SetFanArtFileName(item.Movie.IMDBNumber, _fanartImgIndex);
         }
         if (!_isRefreshing)
         {
-          pictureBoxFanArt.ImageLocation = FanArt.SetFanArtFileName(item.Movie.ID, _fanartImgIndex);
+          pictureBoxFanArt.ImageLocation = FanArt.SetFanArtFileName(item.Movie.IMDBNumber, _fanartImgIndex);
           // Update cover search string
           tbCoverSearchStr.Text = tbTitle.Text;
           // FanArt Picture
@@ -2719,7 +2721,7 @@ namespace MediaPortal.Configuration.Sections
       if (dlg.ShowDialog(this) == DialogResult.OK)
       {
         tbImageLocation.Text = dlg.FileName;
-        UpdateActiveMovieImageAndThumbs(tbImageLocation.Text, CurrentMovie.ID, CurrentMovie.Title);
+        UpdateActiveMovieImageAndThumbs(tbImageLocation.Text, CurrentMovie.ID, CurrentMovie.IMDBNumber, CurrentMovie.Title);
         // Refresh movie
         RefreshMovie(CurrentMovie.ID, cbTitle.SelectedIndex);
       }
@@ -2733,7 +2735,7 @@ namespace MediaPortal.Configuration.Sections
       {
         tbImageLocation.Text = art.Url;
       }
-      UpdateActiveMovieImageAndThumbs(tbImageLocation.Text, CurrentMovie.ID, CurrentMovie.Title);
+      UpdateActiveMovieImageAndThumbs(tbImageLocation.Text, CurrentMovie.ID, CurrentMovie.IMDBNumber, CurrentMovie.Title);
       // Refresh movie
       _clearListBox = false;
       RefreshMovie(CurrentMovie.ID, cbTitle.SelectedIndex);
@@ -2771,7 +2773,7 @@ namespace MediaPortal.Configuration.Sections
     */
 
     // Save thumbs for covers and actors, database update with pic link
-    private void UpdateActiveMovieImageAndThumbs(string strImageUrl, int movieID, string movieTitle)
+    private void UpdateActiveMovieImageAndThumbs(string strImageUrl, int movieID, string imdbTT, string movieTitle)
     {
       if (strImageUrl == string.Empty)
       {
@@ -2787,7 +2789,7 @@ namespace MediaPortal.Configuration.Sections
         pictureBoxCover.Image = null;
       }
       // Cover save new method
-      string titleExt = movieTitle + "{" + movieID + "}";
+      string titleExt = Util.Utils.GetCoverFilename(movieID, imdbTT, movieTitle);
       string strThumb = Util.Utils.GetCoverArtName(Thumbs.MovieTitle, titleExt);
       string largeThumb = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
 
@@ -2969,7 +2971,7 @@ namespace MediaPortal.Configuration.Sections
         if ((tmdbSearch.Count > 0) && (tmdbSearch[0] != string.Empty))
         {
           // Update database with new cover
-          UpdateActiveMovieImageAndThumbs(tmdbSearch[0], movie.ID, movie.Title);
+            UpdateActiveMovieImageAndThumbs(tmdbSearch[0], movie.ID, movie.IMDBNumber, movie.Title);
         }
 
         // IMP Awards if TMDB fail
@@ -2980,7 +2982,7 @@ namespace MediaPortal.Configuration.Sections
           if ((impSearch.Count > 0) && (impSearch[0] != string.Empty))
           {
             // Update database with new cover
-            UpdateActiveMovieImageAndThumbs(impSearch[0], movie.ID, movie.Title);
+            UpdateActiveMovieImageAndThumbs(impSearch[0], movie.ID, movie.IMDBNumber, movie.Title);
           }
         }
 
@@ -2992,7 +2994,7 @@ namespace MediaPortal.Configuration.Sections
           if ((imdbSearch.Count > 0) && (imdbSearch[0] != string.Empty))
           {
             // Update database with new cover
-            UpdateActiveMovieImageAndThumbs(imdbSearch[0], movie.ID, movie.Title);
+            UpdateActiveMovieImageAndThumbs(imdbSearch[0], movie.ID, movie.IMDBNumber, movie.Title);
           }
         }
         // Update progress
@@ -3096,7 +3098,7 @@ namespace MediaPortal.Configuration.Sections
             FanArt fanartSearch = new FanArt();
             fanartSearch.GetTmdbFanartByUrl
               (CurrentMovie.ID, fanart.Url, _fanartImgIndex);
-            FanArt.GetFanArtfilename(CurrentMovie.ID, _fanartImgIndex, out strFile);
+            FanArt.GetFanArtfilename(CurrentMovie.IMDBNumber, CurrentMovie.ID, _fanartImgIndex, out strFile);
             pictureBoxFanArt.ImageLocation = strFile;
             VideoDatabase.SetFanartURL(CurrentMovie.ID, fanart.Url);
             tbFanartLocation.Text = strFile;
@@ -3264,7 +3266,7 @@ namespace MediaPortal.Configuration.Sections
           {
             FanArt fanartSearch = new FanArt();
             fanartSearch.GetLocalFanart
-              (CurrentMovie.ID, fanartFile, _fanartImgIndex);
+              (CurrentMovie.IMDBNumber, CurrentMovie.ID, fanartFile, _fanartImgIndex);
             fanartListBox.Items.Clear();
             // Clear previous image in fanart picturebox
             if (pictureBoxFanArt.Image != null)
@@ -3324,7 +3326,7 @@ namespace MediaPortal.Configuration.Sections
         pictureBoxFanArt.Image = null;
       }
       string strFile = string.Empty;
-      FanArt.GetFanArtfilename(CurrentMovie.ID, index, out strFile);
+      FanArt.GetFanArtfilename(CurrentMovie.IMDBNumber,CurrentMovie.ID, index, out strFile);
       pictureBoxFanArt.ImageLocation = strFile;
       tbFanartLocation.Text = strFile;
     }
@@ -3448,6 +3450,7 @@ namespace MediaPortal.Configuration.Sections
       {
         // Strip movie title prefix
         xmlwriter.SetValueAsBool("moviedatabase", "striptitleprefixes", checkBoxStripTitlePrefix.Checked);
+        //xmlwriter.SetValue("moviedatabase", "titleprefixes", tbTitlePrefixes.Text);
       }
     }
 
@@ -4575,8 +4578,9 @@ namespace MediaPortal.Configuration.Sections
         // New filenames
         //
         title = Util.Utils.MakeFileName(title);
-        string strThumbNew = Path.GetDirectoryName(strThumb) + "\\" + title + "{" + id + "}.jpg";
-        string strLargeThumbNew = Path.GetDirectoryName(largeThumb) + "\\" + title + "{" + id + "}L.jpg";
+        string titleExt = Util.Utils.GetCoverFilename(id, movie.IMDBNumber, title);
+        string strThumbNew = Path.GetDirectoryName(strThumb) + "\\" + titleExt + ".jpg";
+        string strLargeThumbNew = Path.GetDirectoryName(largeThumb) + "\\" + titleExt + "L.jpg";
         //
         // Copy new files and delete old ones
         //
@@ -4632,7 +4636,7 @@ namespace MediaPortal.Configuration.Sections
       foreach (IMDBMovie movie in movies)
       {
         int id = movie.ID;
-        string title = movie.Title + "{" + id + "}";
+        string title = Util.Utils.GetCoverFilename(movie.ID,movie.IMDBNumber,movie.Title);
         //
         //Old file names
         //
@@ -5205,7 +5209,17 @@ namespace MediaPortal.Configuration.Sections
         xmlwriter.SetValueAsBool("moviedatabase", "donotusedatabase", chbDoNotUseDatabase.Checked);
       }
     }
+
+    private void listViewGenres_MouseDoubleClick(object sender, MouseEventArgs e)
+    {
+        buttonUnmapGenre_Click(sender, e);
+    }
     
     #endregion
+
+    private void listViewAllGenres_MouseDoubleClick(object sender, MouseEventArgs e)
+    {
+        buttonMapGenre_Click(sender, e);
+    }
   }
 }

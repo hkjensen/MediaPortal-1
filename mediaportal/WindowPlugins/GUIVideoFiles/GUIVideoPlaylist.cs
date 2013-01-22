@@ -508,7 +508,7 @@ namespace MediaPortal.GUI.Video
                   {
                     listItem.Label = String.Format("({0}:) {1}", listItem.Path.Substring(0, 1), movieDetails.Title);
                   }
-                  string coverArtImage = Util.Utils.GetCoverArt(Thumbs.MovieTitle, movieDetails.Title + "{" + movieDetails.ID + "}");
+                  string coverArtImage = Util.Utils.GetCoverArt(Thumbs.MovieTitle, Util.Utils.GetCoverFilename(movieDetails.ID, movieDetails.IMDBNumber,movieDetails.Title));
                   if (Util.Utils.FileExistsInCache(coverArtImage))
                   {
                     listItem.ThumbnailImage = coverArtImage;
@@ -536,7 +536,7 @@ namespace MediaPortal.GUI.Video
             IMDBMovie movie = new IMDBMovie();
             VideoDatabase.GetMovieInfoById(movieId, ref movie);
             listItem.AlbumInfoTag = movie;
-            string cover = Util.Utils.GetCoverArt(Thumbs.MovieTitle, movie.Title + "{" + movieId + "}");
+            string cover = Util.Utils.GetCoverArt(Thumbs.MovieTitle, Util.Utils.GetCoverFilename(movieId,movie.IMDBNumber, movie.Title));
             if (Util.Utils.FileExistsInCache(cover))
             {
               listItem.ThumbnailImage = cover;
@@ -564,7 +564,7 @@ namespace MediaPortal.GUI.Video
           int idMovie = VideoDatabase.GetMovieInfo(listItem.Path, ref movieDetails);
           if (idMovie >= 0)
           {
-            string coverArtImage = Util.Utils.GetCoverArt(Thumbs.MovieTitle, movieDetails.Title);
+            string coverArtImage = Util.Utils.GetCoverArt(Thumbs.MovieTitle, Util.Utils.GetCoverFilename(movieDetails.ID, movieDetails.IMDBNumber,movieDetails.Title));
             if (Util.Utils.FileExistsInCache(coverArtImage))
             {
               listItem.ThumbnailImage = coverArtImage;
@@ -851,7 +851,7 @@ namespace MediaPortal.GUI.Video
 
       if (movie.ID >= 0)
       {
-        string titleExt = movie.Title + "{" + movie.ID + "}";
+        string titleExt = Util.Utils.GetCoverFilename(movie.ID, movie.IMDBNumber,movie.Title);
         string coverArtImage = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
 
         if (Util.Utils.FileExistsInCache(coverArtImage))
