@@ -271,6 +271,7 @@
 	    <height>58</height>
     	<textureFocus>settings_button_clear_focus.png</textureFocus>
     	<textureNoFocus>settings_button_clear_nofocus.png</textureNoFocus>
+	    <textXOff>0</textXOff>
 	    <textYOff>3</textYOff>
 			<textalign>center</textalign>
       <label>300151</label>
@@ -330,6 +331,7 @@
 	    <height>58</height>
     	<textureFocus>settings_button_clear_focus.png</textureFocus>
     	<textureNoFocus>settings_button_clear_nofocus.png</textureNoFocus>
+	    <textXOff>0</textXOff>
 	    <textYOff>3</textYOff>
 			<textalign>center</textalign>
       <label>300154</label>
@@ -403,6 +405,7 @@
 	    <height>58</height>
     	<textureFocus>settings_button_clear_focus.png</textureFocus>
     	<textureNoFocus>settings_button_clear_nofocus.png</textureNoFocus>
+	    <textXOff>0</textXOff>
 	    <textYOff>3</textYOff>
 			<textalign>center</textalign>
       <label>300158</label>

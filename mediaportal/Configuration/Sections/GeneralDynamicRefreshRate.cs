@@ -409,28 +409,22 @@ namespace MediaPortal.Configuration.Sections
       // 
       // gridColType
       // 
-      this.gridColType.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCells;
       this.gridColType.Frozen = true;
       this.gridColType.HeaderText = "Name";
-      this.gridColType.MinimumWidth = 80;
       this.gridColType.Name = "gridColType";
       this.gridColType.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-      this.gridColType.Width = 80;
+      this.gridColType.Width = 41;
       // 
       // gridColFramerates
       // 
-      this.gridColFramerates.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCells;
       this.gridColFramerates.HeaderText = "Frame rate(s)";
-      this.gridColFramerates.MinimumWidth = 74;
       this.gridColFramerates.Name = "gridColFramerates";
       this.gridColFramerates.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
       this.gridColFramerates.Width = 74;
       // 
       // gridColRR
       // 
-      this.gridColRR.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCells;
       this.gridColRR.HeaderText = "Refresh rate";
-      this.gridColRR.MinimumWidth = 71;
       this.gridColRR.Name = "gridColRR";
       this.gridColRR.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
       this.gridColRR.Width = 71;
@@ -439,10 +433,10 @@ namespace MediaPortal.Configuration.Sections
       // 
       this.gridColAction.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCells;
       this.gridColAction.HeaderText = "Action";
-      this.gridColAction.MinimumWidth = 195;
+      this.gridColAction.MinimumWidth = 215;
       this.gridColAction.Name = "gridColAction";
       this.gridColAction.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-      this.gridColAction.Width = 195;
+      this.gridColAction.Width = 215;
       // 
       // GeneralDynamicRefreshRate
       // 
@@ -512,22 +506,6 @@ namespace MediaPortal.Configuration.Sections
       dataGridViewRR.Rows.Add((object[])p);
       defaultHz.Items.Add(p[0]);
 
-      p = new String[4];
-      p[0] = "ATSC";
-      p[1] = "30"; // fps
-      p[2] = "60"; //hz
-      p[3] = ""; //action
-      dataGridViewRR.Rows.Add((object[])p);
-      defaultHz.Items.Add(p[0]);
-
-      p = new String[4];
-      p[0] = "ATSCHD";
-      p[1] = "60"; // fps
-      p[2] = "60"; //hz
-      p[3] = ""; //action
-      dataGridViewRR.Rows.Add((object[])p);
-      defaultHz.Items.Add(p[0]);
-
       //tv section is not editable, it's static.
       string tvExtCmd = xmlreader.GetValueAsString("general", "refreshrateTV_ext", "");
       string tvName = xmlreader.GetValueAsString("general", "refreshrateTV_name", "PAL");
@@ -585,28 +563,21 @@ namespace MediaPortal.Configuration.Sections
         return;
       }
 
-      DataGridViewSelectedCellCollection sel = dataGridViewRR.SelectedCells;
+      DataGridViewSelectedRowCollection sel = dataGridViewRR.SelectedRows;
       if (sel.Count == 0)
       {
         return;
       }
 
-      foreach (DataGridViewRow row in dataGridViewRR.Rows)
+      foreach (DataGridViewRow row in sel)
       {
-        if (row.Cells[0].Value == null &&
-            (row.Index == dataGridViewRR.CurrentCell.RowIndex))
+        if (row.Cells[0].Value.ToString().ToLower().IndexOf("tv") > -1)
         {
-          dataGridViewRR.Rows.Remove(row);
+          continue;
         }
-        else if (row.Index == dataGridViewRR.CurrentCell.RowIndex)
-        {
-          if (row.Cells[0].Value != null && row.Cells[0].Value.ToString().ToLower().IndexOf("tv") > -1)
-          {
-            continue;
-          }
-          defaultHz.Items.Remove(row.Cells[0].Value);
-          dataGridViewRR.Rows.Remove(dataGridViewRR.Rows[dataGridViewRR.CurrentCell.RowIndex]);
-        }
+
+        defaultHz.Items.Remove(row.Cells[0].Value);
+        dataGridViewRR.Rows.Remove(row);
       }
     }
 
@@ -646,10 +617,7 @@ namespace MediaPortal.Configuration.Sections
         }
         else
         {
-          if (row.Cells[0].Value != null)
-          {
-            defaultHz.Items.Add(row.Cells[0].Value);
-          }
+          defaultHz.Items.Add(row.Cells[0].Value);
           if ((string)row.Cells[2].Value == sDefaultHz && defaultHz.SelectedItem == null)
             defaultHz.SelectedItem = row.Cells[0].Value;
         }
