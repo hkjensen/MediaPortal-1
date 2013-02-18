@@ -68,8 +68,6 @@
       <label>300114</label>
 		  <textcolor>00b7ff</textcolor>
 		  <font>TitanLight12</font>
-			<animation effect="fade" time="150">WindowOpen</animation>
-			<animation effect="fade" time="150">WindowClose</animation>
     </control>
 		
 	<control>
@@ -122,14 +120,12 @@
       <description>Custom values label</description>
       <type>fadelabel</type>
       <id>1</id>
-		  <posX>685</posX>
-		  <posY>850</posY>
-      <width>1085</width>
+      <posX>600</posX>
+      <posY>510</posY>
+      <width>600</width>
       <font>font10</font>
       <label>#customScalevalues</label>
       <visible>control.hasfocus(8)</visible>
-			<animation effect="fade" time="150">WindowOpen</animation>
-			<animation effect="fade" time="150">WindowClose</animation>
     </control>
     <!--OSD-->
     <control>
@@ -142,8 +138,6 @@
       <label>478</label>
 		  <textcolor>00b7ff</textcolor>
 		  <font>TitanLight12</font>
-			<animation effect="fade" time="150">WindowOpen</animation>
-			<animation effect="fade" time="150">WindowClose</animation>
     </control>
 		
 		<control Style="SettingsCheckButtonLarge">
@@ -155,8 +149,6 @@
 			<onup>8</onup>
       <ondown>2</ondown>
       <label>300119</label>
-			<animation effect="fade" time="150">WindowOpen</animation>
-			<animation effect="fade" time="150">WindowClose</animation>
     </control>
   </controls>
 </window>

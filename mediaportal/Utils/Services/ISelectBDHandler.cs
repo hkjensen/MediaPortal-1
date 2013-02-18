@@ -31,7 +31,6 @@ namespace MediaPortal.Services
     string GetFolderVideoFile(string path);
     bool OnPlayBD(String drive, int parentId);
     string GetBDFolderName(string fileName);
-    string GetDiscTitle(string fileName);
     bool IsBDPlayList(ref string filename);
   }
 }
