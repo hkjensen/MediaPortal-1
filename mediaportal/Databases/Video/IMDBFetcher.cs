@@ -372,7 +372,7 @@ namespace MediaPortal.Video.Database
               }
             }
 
-            titleExt = Util.Utils.GetCoverFilename(_movieDetails.ID, _movieDetails.IMDBNumber, _movieDetails.Title);
+            titleExt = _movieDetails.Title + "{" + _movieDetails.ID + "}";
             largeCoverArt = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
             coverArt = Util.Utils.GetCoverArtName(Thumbs.MovieTitle, titleExt);
 
@@ -441,7 +441,7 @@ namespace MediaPortal.Video.Database
             }
             else // Local file or user url
             {
-              fanartSearch.GetLocalFanart(_movieDetails.IMDBNumber, _movieDetails.ID, _movieDetails.FanartURL, 0);
+              fanartSearch.GetLocalFanart(_movieDetails.ID, _movieDetails.FanartURL, 0);
             }
             
             // **Progress bar message fanart End
@@ -510,7 +510,7 @@ namespace MediaPortal.Video.Database
             }
 
             // Save movie info
-            VideoDatabase.SetMovieInfoById(_movieDetails.ID, ref _movieDetails, false);
+            VideoDatabase.SetMovieInfoById(_movieDetails.ID, ref _movieDetails, true);
 
             // Add groups with rules
             ArrayList groups = new ArrayList();

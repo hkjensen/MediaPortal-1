@@ -3575,18 +3575,6 @@ namespace MediaPortal.Util
       return lookForThumb;
     }
 
-    public static string GetCoverFilename(int movieID, string imdbTT, string movieTitle)
-    {
-      if(string.IsNullOrEmpty(imdbTT))
-      {
-          return movieTitle + "{" + movieID + "}"; 
-      }
-      else
-      {
-          return imdbTT;
-      }
-    }
-
     public static string GetCoverArt(string strFolder, string strFileName)
     {
       if (string.IsNullOrEmpty(strFolder) || string.IsNullOrEmpty(strFileName))

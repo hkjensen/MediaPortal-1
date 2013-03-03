@@ -342,7 +342,7 @@ namespace MediaPortal.GUI.Video
                 pItem.Label = String.Format("({0}:) {1}", pItem.Path.Substring(0, 1), movie.Title);
               }
 
-              string titleExt = Util.Utils.GetCoverFilename(id, movie.IMDBNumber, movie.Title);
+              string titleExt = movie.Title + "{" + id + "}";
               strThumb = Util.Utils.GetCoverArt(Thumbs.MovieTitle, titleExt);
             }
 

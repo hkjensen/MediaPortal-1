@@ -78,7 +78,7 @@ namespace MediaPortal.Util
     /// <param name="movieId"></param>
     /// <param name="localFile"></param>
     /// <param name="index"></param>
-    public void GetLocalFanart(string imdbTT, int movieId, string localFile, int index)
+    public void GetLocalFanart(int movieId, string localFile, int index)
     {
       if (localFile == string.Empty)
       {
@@ -102,7 +102,7 @@ namespace MediaPortal.Util
 
       if (Directory.Exists(configDir))
       {
-          string dbFile = SetFanArtFileName(imdbTT, movieId, index);
+        string dbFile = SetFanArtFileName(movieId, index);
 
         if (!isUrl)
         {
@@ -110,7 +110,7 @@ namespace MediaPortal.Util
           {
             if (!localFile.Equals(dbFile, StringComparison.OrdinalIgnoreCase) && File.Exists(localFile))
             {
-              DeleteFanart(imdbTT, movieId, index);
+              DeleteFanart(movieId, index);
               File.Copy(localFile, dbFile, true);
               File.SetAttributes(dbFile, FileAttributes.Normal);
             }
@@ -137,11 +137,6 @@ namespace MediaPortal.Util
         }
 
       }
-    }
-
-    public static string SetFanArtFileName(int movieId, int index)
-    {
-       return SetFanArtFileName(string.Empty, movieId, index);
     }
 
     /// <summary>
@@ -260,11 +255,11 @@ namespace MediaPortal.Util
           if (_fanartList.Count > 0)
           {
             // Delete old FA
-            DeleteFanarts(imdbTT,movieId);
+            DeleteFanarts(movieId);
 
             if (countFA == 1) //Only one fanart found
             {
-                DownloadFanart(imdbTT,movieId, 0);
+              DownloadFanart(movieId, 0);
             }
             else //Get max 5 fanart per movie
             {
@@ -276,7 +271,7 @@ namespace MediaPortal.Util
 
               for (int i = 0; i < countFA; i++)
               {
-                  DownloadFanart(imdbTT, movieId, i);
+                DownloadFanart(movieId, i);
               }
             }
           }
@@ -359,7 +354,7 @@ namespace MediaPortal.Util
     /// <param name="movieId"></param>
     /// <param name="fileIndex"></param>
     /// <param name="fileart"></param>
-    public static void GetFanArtfilename(string imdbTT, int movieId, int fileIndex, out string fileart)
+    public static void GetFanArtfilename(int movieId, int fileIndex, out string fileart)
     {
       fileart = string.Empty;
       // FanArt directory
@@ -368,22 +363,20 @@ namespace MediaPortal.Util
 
       if (Directory.Exists(configDir))
       {
-        fileart = SetFanArtFileName(imdbTT, movieId, fileIndex);
+        fileart = SetFanArtFileName(movieId, fileIndex);
         if (!File.Exists(fileart))
           fileart = "Unknown";
       }
     }
 
     // Helper funct to delete covers
-    public static void DeleteCovers(string imdbTT, string title, int id)
+    public static void DeleteCovers(string title, int id)
     {
-      if (title == string.Empty || id < 0 || string.IsNullOrEmpty(imdbTT))
+      if (title == string.Empty || id < 0)
       {
         return;
       }
-
-      string titleExt = Utils.GetCoverFilename(id, imdbTT, title);
-
+      string titleExt = title + "{" + id + "}";
       string file = Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
       DeleteFile(file);
 
@@ -392,7 +385,7 @@ namespace MediaPortal.Util
     }
 
     // Helper funct to delete fanarts
-    public static void DeleteFanarts(string imdbTT,int movieId)
+    public static void DeleteFanarts(int movieId)
     {
       if (movieId == -1)
         return;
@@ -404,17 +397,12 @@ namespace MediaPortal.Util
 
       for (int i = 0; i < fanartQ; i++)
       {
-        string file = SetFanArtFileName(imdbTT,movieId, i);
+        string file = SetFanArtFileName(movieId, i);
         DeleteFile(file);
       }
     }
 
-
     public static void DeleteFanart(int movieId, int index)
-    {
-        DeleteFanart(string.Empty, movieId, index);
-    }
-    public static void DeleteFanart(string imdbTT,int movieId, int index)
     {
       if (movieId == -1)
         return;
@@ -422,7 +410,7 @@ namespace MediaPortal.Util
       string configDir;
       GetFanArtFolder(out configDir);
 
-      string file = SetFanArtFileName(imdbTT,movieId, index);
+      string file = SetFanArtFileName(movieId, index);
       DeleteFile(file);
     }
 
@@ -459,20 +447,13 @@ namespace MediaPortal.Util
     /// <param name="movieId"></param>
     /// <param name="index"></param>
     /// <returns></returns>
-    public static string SetFanArtFileName(string imdbTT,int movieId, int index)
+    public static string SetFanArtFileName(int movieId, int index)
     {
       string configDir = string.Empty;
       GetFanArtFolder(out configDir);
       string ext = ".jpg";
       //
-        if(string.IsNullOrEmpty(imdbTT))
-        {
-          return configDir + movieId + "{" + index + "}" + ext;
-        }
-        else
-        {
-          return configDir + imdbTT + "{" + index + "}" + ext;
-        }
+      return configDir + movieId + "{" + index + "}" + ext;
     }
 
     /// <summary>
@@ -532,11 +513,11 @@ namespace MediaPortal.Util
     #region Private Methods
 
     // Download and save fanart
-    private void DownloadFanart(string imdbTT,int movieId, int index)
+    private void DownloadFanart(int movieId, int index)
     {
       try
       {
-        _fileFanArt = SetFanArtFileName(imdbTT, movieId, index);
+        _fileFanArt = SetFanArtFileName(movieId, index);
         var webClient = new WebClient();
         webClient.DownloadFile((string)_fanartList[index], _fileFanArt);
         _fanartUrl = _fanartList[0].ToString();

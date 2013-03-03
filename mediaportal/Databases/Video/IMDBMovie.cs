@@ -844,7 +844,7 @@ namespace MediaPortal.Video.Database
 
     private string GetStrThumb()
     {
-      string titleExt = Util.Utils.GetCoverFilename(ID, IMDBNumber, Title);
+      string titleExt = Title + "{" + ID + "}";
       return Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
     }
 
@@ -1699,7 +1699,7 @@ namespace MediaPortal.Video.Database
           return;
         }
       
-        string titleExt = Util.Utils.GetCoverFilename(info.ID, info.IMDBNumber, info.Title);
+        string titleExt = info.Title + "{" + info.ID + "}";
         string strThumb = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
 
         GUIPropertyManager.SetProperty("#director", info.Director);

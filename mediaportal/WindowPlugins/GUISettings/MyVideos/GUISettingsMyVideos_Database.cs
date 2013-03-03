@@ -809,9 +809,9 @@ namespace MediaPortal.GUI.Settings
           strFilenameAndPath = files[0].ToString();
           
           // Delete covers
-          FanArt.DeleteCovers(movie.IMDBNumber, movie.Title, movie.ID);
+          FanArt.DeleteCovers(movie.Title, movie.ID);
           // Delete fanarts
-          FanArt.DeleteFanarts(movie.IMDBNumber, movie.ID);
+          FanArt.DeleteFanarts(movie.ID);
         }
       }
       _conflictFiles = new ArrayList();

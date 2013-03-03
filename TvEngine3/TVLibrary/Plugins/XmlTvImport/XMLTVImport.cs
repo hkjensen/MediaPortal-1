@@ -28,7 +28,6 @@ using System.Xml;
 using TvDatabase;
 using TvLibrary.Log;
 using Gentle.Framework;
-using System.Text.RegularExpressions;
 
 namespace TvEngine
 {
@@ -639,31 +638,8 @@ namespace TvEngine
                         // example: 'Episode #FFEE' 
                         serEpNum = ConvertHTMLToAnsi(nodeEpisodeNum);
                         int num1 = serEpNum.IndexOf("#", 0);
-                        if (num1 > 0)
-                        {
-                          episodeNum = CorrectEpisodeNum(serEpNum.Substring(num1, serEpNum.Length - num1), 0);
-                        }
-                        else
-                        {
-                          if (serEpNum.IndexOf(":", 0) > 0)
-                          {
-                            episodeNum = CorrectEpisodeNum(serEpNum, 0);
-                          }
-                          else
-                          {
-                            Regex regEpisode = new Regex("(?<episode>\\d*)\\D*(?<series>\\d*)", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
-                            Match m = regEpisode.Match(serEpNum);
-                            if (m.Success)
-                            {
-                              episodeNum = CorrectEpisodeNum(m.Groups["episode"].Value, 0);
-                              seriesNum = CorrectEpisodeNum(m.Groups["series"].Value, 0);
-                            }
-                            else
-                            {
-                              episodeNum = CorrectEpisodeNum(serEpNum, 0);
-                            }
-                          }
-                        }
+                        if (num1 < 0) num1 = 0;
+                        episodeNum = CorrectEpisodeNum(serEpNum.Substring(num1, serEpNum.Length - num1), 0);
                       }
                     }
                     else
@@ -892,11 +868,8 @@ namespace TvEngine
     {
       if (episodenum == "")
         return episodenum;
+
       // Find format of the episode number
-      episodenum = episodenum.Replace("(", "");
-      episodenum = episodenum.Replace(")", "");
-      episodenum = episodenum.Replace(":", "/");
-      episodenum = episodenum.Trim('/');
       int slashpos = episodenum.IndexOf("/", 0);
       if (slashpos == -1)
       {
@@ -909,7 +882,6 @@ namespace TvEngine
         catch (Exception)
         {
           Log.WriteFile("XMLTVImport::CorrectEpisodeNum, could not parse '{0}' as plain number", episodenum);
-          return episodenum;
         }
       }
       else

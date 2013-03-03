@@ -1443,7 +1443,7 @@ namespace MediaPortal.GUI.Video
           {
             if (movie.ID >= 0)
             {
-              string titleExt = Util.Utils.GetCoverFilename(movie.ID, movie.IMDBNumber, movie.Title);
+              string titleExt = movie.Title + "{" + movie.ID + "}";
               coverArtImage = Util.Utils.GetCoverArt(Thumbs.MovieTitle, titleExt);
               
               if (Util.Utils.FileExistsInCache(coverArtImage))
@@ -1784,7 +1784,7 @@ namespace MediaPortal.GUI.Video
 
       if (movie.ID >= 0)
       {
-        string titleExt = Util.Utils.GetCoverFilename(movie.ID, movie.IMDBNumber, movie.Title);
+        string titleExt = movie.Title + "{" + movie.ID + "}";
         string coverArtImage = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
         
         if (Util.Utils.FileExistsInCache(coverArtImage))
@@ -2020,7 +2020,7 @@ namespace MediaPortal.GUI.Video
 
         // Rename cover thumbs
         string oldTitleExt = movie.Title + "{" + movie.ID + "}";
-        string newTitleExt = Util.Utils.GetCoverFilename(movie.ID, movie.IMDBNumber, movieTitle);
+        string newTitleExt = movieTitle + "{" + movie.ID + "}";
         string oldSmallThumb = Util.Utils.GetCoverArtName(Thumbs.MovieTitle, oldTitleExt);
         string oldLargeThumb = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, oldTitleExt);
         string newSmallThumb = Util.Utils.GetCoverArtName(Thumbs.MovieTitle, newTitleExt);

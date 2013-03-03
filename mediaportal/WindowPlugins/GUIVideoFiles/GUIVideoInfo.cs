@@ -264,7 +264,7 @@ namespace MediaPortal.GUI.Video
       // Delete cover for fake movie
       if (!_addToDatabase)
       {
-        string titleExt = Util.Utils.GetCoverFilename(_currentMovie.ID, _currentMovie.IMDBNumber, _currentMovie.Title);
+        string titleExt = _currentMovie.Title + "{" + _currentMovie.ID + "}";
         string coverArtImage = Util.Utils.GetCoverArtName(Thumbs.MovieTitle, titleExt);
         string largeCoverArtImage = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
         Util.Utils.FileDelete(coverArtImage);
@@ -387,7 +387,7 @@ namespace MediaPortal.GUI.Video
         string titleExt = string.Empty;
         
         // Title suffix for problem with covers and movie with the same name
-        titleExt = Util.Utils.GetCoverFilename(_currentMovie.ID, _currentMovie.IMDBNumber, _currentMovie.Title);
+        titleExt = _currentMovie.Title + "{" + _currentMovie.ID + "}";
         string coverArtImage = Util.Utils.GetCoverArtName(Thumbs.MovieTitle, titleExt);
         string largeCoverArtImage = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
         Util.Utils.FileDelete(coverArtImage);
@@ -834,7 +834,7 @@ namespace MediaPortal.GUI.Video
 
         if (imageUrl.Length > 0)
         {
-          titleExt = Util.Utils.GetCoverFilename(_currentMovie.ID, _currentMovie.IMDBNumber, _currentMovie.Title);
+          titleExt = _currentMovie.Title + "{" + _currentMovie.ID + "}";
           coverArtImage = Util.Utils.GetCoverArtName(Thumbs.MovieTitle, titleExt);
           largeCoverArtImage = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
           //added by BoelShit
