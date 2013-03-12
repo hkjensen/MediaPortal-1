@@ -1,4 +1,4 @@
-ï»¿#region Copyright (C) 2005-2011 Team MediaPortal
+#region Copyright (C) 2005-2011 Team MediaPortal
 
 // Copyright (C) 2005-2011 Team MediaPortal
 // http://www.team-mediaportal.com
@@ -146,6 +146,10 @@ namespace MediaPortal.Video.Database
     {
       _database.AddGenreToMovie(lMovieId, lGenreId);
     }
+    public static void AddGenreToMovie(int lMovieId, String strGenre)
+    {
+        _database.AddGenreToMovie(lMovieId, strGenre);
+    }
 
     public static void DeleteGenre(string genre)
     {
@@ -157,6 +161,11 @@ namespace MediaPortal.Video.Database
       _database.RemoveGenresForMovie(lMovieId);
     }
 
+    public static void RemoveGenreForMovie(int lMovieId, string strGenre)
+    {
+        _database.RemoveGenreForMovie(lMovieId, strGenre);
+    }
+  
     #endregion
 
     #region User groups
@@ -724,7 +733,7 @@ namespace MediaPortal.Video.Database
     public static string NonwordCharacters()
     {
       string characters =
-        @"'1','2','3','4','5','6','7','8','9','''','(',')','[',']','{','}','""','!','#','$','%','&','/','+','-','<','>','.',',',':',';','Â§','|','_','\','@','â‚¬','~','^','Ë‡','Â½','*'";
+        @"'1','2','3','4','5','6','7','8','9','''','(',')','[',']','{','}','""','!','#','$','%','&','/','+','-','<','>','.',',',':',';','§','|','_','\','@','€','~','^','?','½','*'";
       return characters;
     }
 

@@ -43,9 +43,11 @@ namespace MediaPortal.Video.Database
     int AddGenre(string strGenre1);
     void GetGenres(ArrayList genres);
     string GetGenreById(int genreId);
+    void AddGenreToMovie(int lMovieId, string strGenre);
     void AddGenreToMovie(int lMovieId, int lGenreId);
     void DeleteGenre(string genre);
     void RemoveGenresForMovie(int lMovieId);
+    void RemoveGenreForMovie(int lMovieId, string strGenre);
     
     // User groups
     int AddUserGroup(string userGroup);
