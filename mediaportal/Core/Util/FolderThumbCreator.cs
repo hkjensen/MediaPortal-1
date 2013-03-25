@@ -85,13 +85,13 @@ namespace MediaPortal.Util
               {
                 File.Copy(largeAlbumThumb, strRemoteFolderThumb, false);
                 File.SetAttributes(strRemoteFolderThumb,
-                                   File.GetAttributes(strRemoteFolderThumb) | FileAttributes.Hidden);
+                                   File.GetAttributes(strRemoteFolderThumb));
               }
               else
               {
                 File.Copy(albumThumb, strRemoteFolderThumb, false);
                 File.SetAttributes(strRemoteFolderThumb,
-                                   File.GetAttributes(strRemoteFolderThumb) | FileAttributes.Hidden);
+                                   File.GetAttributes(strRemoteFolderThumb));
               }
               Log.Info("GUIMusicFiles: Using album art for missing folder thumb {0}", strRemoteFolderThumb);
 
@@ -100,7 +100,7 @@ namespace MediaPortal.Util
               {
                 FolderThumbCacher cacheNow = new FolderThumbCacher(Path.GetDirectoryName(strRemoteFolderThumb), false);
                 File.SetAttributes(strRemoteFolderThumb,
-                                   File.GetAttributes(strRemoteFolderThumb) | FileAttributes.Hidden);
+                                   File.GetAttributes(strRemoteFolderThumb));
               }
             }
           }

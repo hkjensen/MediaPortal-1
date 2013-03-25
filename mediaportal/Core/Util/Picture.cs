@@ -965,7 +965,7 @@ namespace MediaPortal.Util
           fs.Flush();
         }
 
-        File.SetAttributes(aThumbTargetPath, File.GetAttributes(aThumbTargetPath) | FileAttributes.Hidden);
+        File.SetAttributes(aThumbTargetPath, File.GetAttributes(aThumbTargetPath));
         // even if run in background thread wait a little so the main process does not starve on IO
         if (MediaPortal.Player.g_Player.Playing)
           Thread.Sleep(100);
