@@ -24,17 +24,40 @@
       <width>249</width>
       <height>125</height>
       <texture>#MovingPictures.ClearArt\#Play.Current.IMDBNumber.png</texture>
+      <visible>!control.hasfocus(1237)</visible>
+    </control>
+    <control>
+      <description>Movie ClearArt</description>
+      <type>image</type>
+      <id>0</id>
+      <posX>949</posX>
+      <posY>150</posY>
+      <width>249</width>
+      <height>125</height>
+      <texture>#MovingPictures.ClearArt\#Play.Current.IMDBNumber.png</texture>
+      <visible>control.hasfocus(1237)</visible>
     </control>
     <control>
       <description>TVSeries ClearArt</description>
       <type>image</type>
       <id>0</id>
       <posX>949</posX>
-      <posY>351</posY>
+      <posY>349</posY>
       <width>249</width>
       <height>125</height>
       <texture>#TVSeries.Play.ClearArt</texture>
       <visible>!control.hasfocus(1237)</visible>
+    </control>
+    <control>
+      <description>TVSeries ClearArt</description>
+      <type>image</type>
+      <id>0</id>
+      <posX>949</posX>
+      <posY>150</posY>
+      <width>249</width>
+      <height>125</height>
+      <texture>#TVSeries.Play.ClearArt</texture>
+      <visible>control.hasfocus(1237)</visible>
     </control>
     <control>
       <description>Time BG</description>
@@ -178,6 +201,7 @@
       <height>160</height>
       <texture mask="videothumbmask.png">#Play.Current.Thumb</texture>
       <keepaspectratio>no</keepaspectratio>
+      <visible>control.hasfocus(1237)</visible>
       <animation effect="fade" time="100" reversible="true">visible</animation>
     </control>
     <control>
@@ -188,7 +212,7 @@
       <width>105</width>
       <height>160</height>
       <texture>videothumbframe.png</texture>
-      <visible>control.hasthumb(102)</visible>
+      <visible>control.hasthumb(102)+control.hasfocus(1237)</visible>
       <animation effect="fade" time="100" reversible="true">visible</animation>
     </control>
     <import>common.logos.xml</import>
