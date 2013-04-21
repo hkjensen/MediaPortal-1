@@ -1,4 +1,4 @@
-#region Copyright (C) 2005-2011 Team MediaPortal
+ï»¿#region Copyright (C) 2005-2011 Team MediaPortal
 
 // Copyright (C) 2005-2011 Team MediaPortal
 // http://www.team-mediaportal.com
@@ -391,14 +391,14 @@ namespace MediaPortal.Video.Database
       _database.SetMovieStopTime(iFileId, stoptime);
     }
 
-    public static int GetMovieStopTimeAndResumeData(int iFileId, out byte[] resumeData)
+    public static int GetMovieStopTimeAndResumeData(int iFileId, out byte[] resumeData, int bdtitle)
     {
-      return _database.GetMovieStopTimeAndResumeData(iFileId, out resumeData);
+      return _database.GetMovieStopTimeAndResumeData(iFileId, out resumeData, bdtitle);
     }
 
-    public static void SetMovieStopTimeAndResumeData(int iFileId, int stoptime, byte[] resumeData)
+    public static void SetMovieStopTimeAndResumeData(int iFileId, int stoptime, byte[] resumeData, int bdtitle)
     {
-      _database.SetMovieStopTimeAndResumeData(iFileId, stoptime, resumeData);
+      _database.SetMovieStopTimeAndResumeData(iFileId, stoptime, resumeData, bdtitle);
     }
 
     public static void SetMovieWatchedStatus(int iMovieId, bool watched, int percent)
@@ -467,6 +467,11 @@ namespace MediaPortal.Video.Database
     public static int GetMovieId(string strFilenameAndPath)
     {
       return _database.GetMovieId(strFilenameAndPath);
+    }
+
+    public static int GetTitleBDId(int iFileId, out byte[] resumeData)
+    {
+      return _database.GetTitleBDId(iFileId, out resumeData);
     }
 
     public static bool HasSubtitle(string strFilenameAndPath)
@@ -733,7 +738,7 @@ namespace MediaPortal.Video.Database
     public static string NonwordCharacters()
     {
       string characters =
-        @"'1','2','3','4','5','6','7','8','9','''','(',')','[',']','{','}','""','!','#','$','%','&','/','+','-','<','>','.',',',':',';','§','|','_','\','@','€','~','^','?','½','*'";
+        @"'1','2','3','4','5','6','7','8','9','''','(',')','[',']','{','}','""','!','#','$','%','&','/','+','-','<','>','.',',',':',';','Â§','|','_','\','@','â‚¬','~','^','?','Â½','*'";
       return characters;
     }
 
