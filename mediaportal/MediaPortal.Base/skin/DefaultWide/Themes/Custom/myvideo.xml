@@ -221,7 +221,7 @@
       <align>left</align>
       <imagesToDraw>10</imagesToDraw>
       <percentage>#rating</percentage>
-      <visible>facadeview.list+string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Text Rating/Votes Value</description>
@@ -233,7 +233,7 @@
       <font>font11</font>
       <align>left</align>
       <textcolor>ivory</textcolor>
-      <visible>facadeview.list+string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Default image</description>
@@ -254,7 +254,7 @@
       <posY>200</posY>
       <width>260</width>
       <height>250</height>
-      <texture>#MovingPictures.DVDArt\#imdbnumber.png</texture>
+      <texture>..\..\thumbs\CDArt\Movies\#imdbnumber.png</texture>
       <keepaspectratio>yes</keepaspectratio>
       <visible>facadeview.list</visible>
       <animation effect="rotate" delay="0" end="-360" centre="475,258" time="8000" loop="true" condition="true">Conditional</animation>
@@ -291,7 +291,7 @@
       <font>font10</font>
       <align>left</align>
       <textcolor>ff6FAFE1</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Genre value</description>
@@ -303,7 +303,7 @@
       <label>#genre</label>
       <font>font12</font>
       <textcolor>ivory</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Director txt</description>
@@ -315,7 +315,7 @@
       <font>font10</font>
       <align>left</align>
       <textcolor>ff6FAFE1</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Director value</description>
@@ -327,7 +327,7 @@
       <font>font12</font>
       <width>280</width>
       <textcolor>ivory</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Year txt</description>
@@ -339,7 +339,7 @@
       <font>font10</font>
       <align>left</align>
       <textcolor>ff6FAFE1</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Year value</description>
@@ -351,7 +351,7 @@
       <label>#year</label>
       <font>font12</font>
       <textcolor>ivory</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Runtime txt</description>
@@ -363,7 +363,7 @@
       <font>font10</font>
       <align>left</align>
       <textcolor>ff6FAFE1</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Runtime value</description>
@@ -375,7 +375,7 @@
       <label>#runtime</label>
       <font>font12</font>
       <textcolor>ivory</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Video Runtime Label</description>
@@ -386,7 +386,7 @@
       <label>#(L(291))-#(L(299))</label>
       <font>font11</font>
       <textcolor>ff6FAFE1</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Video Runtime Value</description>
@@ -397,7 +397,7 @@
       <label>#videoruntime</label>
       <font>font12</font>
       <textcolor>ivory</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>MPAA txt</description>
@@ -409,7 +409,7 @@
       <font>font10</font>
       <align>left</align>
       <textcolor>ff6FAFE1</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>MPAA Rating</description>
@@ -422,7 +422,7 @@
       <font>font12</font>
       <align>left</align>
       <textcolor>ivory</textcolor>
-      <visible>facadeview.list+ string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Separator Line</description>
@@ -447,7 +447,7 @@
       <label>#plot</label>
       <font>font11</font>
       <textcolor>ivory</textcolor>
-      <visible>facadeview.list+string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>Separator Line</description>
@@ -459,7 +459,7 @@
       <height>1</height>
       <texture>hbar1white.png</texture>
       <colordiffuse>60ffffff</colordiffuse>
-      <visible>facadeview.list+string.equals(#hideinfo, False)</visible>
+      <visible>facadeview.list</visible>
     </control>
     <control>
       <description>usergroup list value</description>
