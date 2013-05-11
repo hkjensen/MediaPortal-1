@@ -5148,7 +5148,8 @@ namespace MediaPortal.Video.Database
             XmlNode nodeCountry = nodeMovie.SelectSingleNode("country");
             XmlNode nodeReview = nodeMovie.SelectSingleNode("review");
             XmlNode nodeCredits = nodeMovie.SelectSingleNode("credits");
-            
+            XmlNode nodeId = nodeMovie.SelectSingleNode("id");
+
             #endregion
 
             #region Moviefiles
@@ -5285,8 +5286,14 @@ namespace MediaPortal.Video.Database
             }
 
             movie = new IMDBMovie();
-            movie.ID = id;
-
+            if (nodeId != null)
+            {
+              id = Convert.ToInt32(nodeId.InnerText);
+            }
+            else
+            {
+              movie.ID = id;
+            }
             #endregion
 
             #region Genre

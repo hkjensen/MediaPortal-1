@@ -830,7 +830,7 @@ namespace MediaPortal.Util
             if (thumbnailImageDest != null && !File.Exists(thumbnailImageDest))
             {
               img.Save(thumbnailImageDest, Thumbs.ThumbCodecInfo, Thumbs.ThumbEncoderParams);
-              File.SetAttributes(thumbnailImageDest, File.GetAttributes(thumbnailImageDest) | FileAttributes.Hidden);
+              File.SetAttributes(thumbnailImageDest, File.GetAttributes(thumbnailImageDest));
             }
             return true;
           }
@@ -1038,7 +1038,7 @@ namespace MediaPortal.Util
               // Write small thumbnail
               myTargetThumb = new Bitmap(shellThumb, iWidth, iHeight);
               myTargetThumb.Save(thumbnailImageDest, Thumbs.ThumbCodecInfo, Thumbs.ThumbEncoderParams);
-              File.SetAttributes(thumbnailImageDest, File.GetAttributes(thumbnailImageDest) | FileAttributes.Hidden);
+              File.SetAttributes(thumbnailImageDest, File.GetAttributes(thumbnailImageDest));
               result = true;
             }
             else
@@ -1064,7 +1064,7 @@ namespace MediaPortal.Util
               // Write Large thumbnail
               myTargetThumb = new Bitmap(shellThumb, iWidth, iHeight);
               myTargetThumb.Save(thumbnailImageDest, Thumbs.ThumbCodecInfo, Thumbs.ThumbEncoderParams);
-              File.SetAttributes(thumbnailImageDest, File.GetAttributes(thumbnailImageDest) | FileAttributes.Hidden);
+              File.SetAttributes(thumbnailImageDest, File.GetAttributes(thumbnailImageDest));
               result = true;
             }
           }
