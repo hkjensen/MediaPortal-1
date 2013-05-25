@@ -23,6 +23,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using MediaPortal.Configuration;
 
 namespace MediaPortal.GUI.Library
 {
@@ -49,6 +50,7 @@ namespace MediaPortal.GUI.Library
 
     static GUIPropertyManager()
     {
+      _properties["#MP.Thumbs"] = Config.GetFolder(Config.Dir.Thumbs);
       _properties["#highlightedbutton"] = string.Empty;
       _properties["#itemcount"] = string.Empty;
       _properties["#totalduration"] = string.Empty;

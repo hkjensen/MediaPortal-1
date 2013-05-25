@@ -3031,6 +3031,14 @@ namespace MediaPortal.Video.Database
       return new string(chars);
     }
 
+    /// <summary>
+    /// Deprecated Method (this one will not use the new Blu-ray Title mode resume)
+    /// </summary>
+    public int GetMovieStopTimeAndResumeData(int iFileId, out byte[] resumeData)
+    {
+      return GetMovieStopTimeAndResumeData(iFileId, out resumeData, g_Player.BdDefaultTitle);
+    }
+
     public int GetMovieStopTimeAndResumeData(int iFileId, out byte[] resumeData, int bdtitle)
     {
       resumeData = null;
@@ -3065,6 +3073,14 @@ namespace MediaPortal.Video.Database
         Open();
       }
       return 0;
+    }
+
+    /// <summary>
+    /// Deprecated Method (this one will not use the new Blu-ray Title mode resume)
+    /// </summary>
+    public void SetMovieStopTimeAndResumeData(int iFileId, int stoptime, byte[] resumeData)
+    {
+      SetMovieStopTimeAndResumeData(iFileId, stoptime, resumeData, g_Player.BdDefaultTitle);
     }
 
     public void SetMovieStopTimeAndResumeData(int iFileId, int stoptime, byte[] resumeData, int bdtitle)
