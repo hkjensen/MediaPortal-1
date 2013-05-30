@@ -244,17 +244,17 @@
       <width>180</width>
       <height>250</height>
       <texture mask="videothumbmask.png">missing_Coverart_video.png</texture>
-      <visible>facadeview.list+[Control.HasFocus(50)+!control.hasthumb(500)]</visible>
+      <visible>facadeview.list+[Control.HasFocus(50)+!control.hasthumb(500)]+!string.equals(#hideinfo,..)</visible>
     </control>
     <control>
       <description>Rotating Movie disc</description>
       <type>image</type>
       <id>0</id>
-      <posX>930</posX>
-      <posY>200</posY>
-      <width>260</width>
+      <posX>970</posX>
+      <posY>235</posY>
+      <width>180</width>
       <height>250</height>
-      <texture>..\..\thumbs\CDArt\Movies\#imdbnumber.png</texture>
+      <texture>#MP.Thumbs\CDArt\Movies\#imdbnumber.png</texture>
       <keepaspectratio>yes</keepaspectratio>
       <visible>facadeview.list</visible>
       <animation effect="rotate" delay="0" end="-360" centre="475,258" time="8000" loop="true" condition="true">Conditional</animation>

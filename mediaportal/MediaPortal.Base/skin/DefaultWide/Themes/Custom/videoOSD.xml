@@ -18,24 +18,46 @@
     <control>
       <description>Movie ClearArt</description>
       <type>image</type>
+      <id>9102</id>
+      <posX>949</posX>
+      <posY>351</posY>
+      <width>249</width>
+      <height>125</height>
+      <texture>#MP.Thumbs\ClearArt\Movies\#Play.Current.IMDBNumber.png</texture>
+      <visible>!control.hasfocus(1237)</visible>
+    </control>
+    <control>
+      <description>Movie ClearArt</description>
+      <type>image</type>
+      <id>9103</id>
+      <posX>949</posX>
+      <posY>150</posY>
+      <width>249</width>
+      <height>125</height>
+      <texture>#MP.Thumbs\ClearArt\Movies\#Play.Current.IMDBNumber.png</texture>
+      <visible>control.hasfocus(1237)</visible>
+    </control>
+    <control>
+      <description>Movie ClearLogo</description>
+      <type>image</type>
       <id>0</id>
       <posX>949</posX>
       <posY>351</posY>
       <width>249</width>
       <height>125</height>
-      <texture>#MovingPictures.ClearArt\#Play.Current.IMDBNumber.png</texture>
-      <visible>!control.hasfocus(1237)</visible>
+      <texture>#MP.Thumbs\ClearLogo\Movies\#Play.Current.IMDBNumber.png</texture>
+      <visible>!control.hasfocus(1237)+!control.hasthumb(9102)</visible>
     </control>
     <control>
-      <description>Movie ClearArt</description>
+      <description>Movie ClearLogo</description>
       <type>image</type>
       <id>0</id>
       <posX>949</posX>
       <posY>150</posY>
       <width>249</width>
       <height>125</height>
-      <texture>#MovingPictures.ClearArt\#Play.Current.IMDBNumber.png</texture>
-      <visible>control.hasfocus(1237)</visible>
+      <texture>#MP.Thumbs\ClearLogo\Movies\#Play.Current.IMDBNumber.png</texture>
+      <visible>control.hasfocus(1237)+!control.hasthumb(9103)</visible>
     </control>
     <control>
       <description>TVSeries ClearArt</description>

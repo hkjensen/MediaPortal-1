@@ -255,7 +255,7 @@
       <posY>200</posY>
       <width>260</width>
       <height>250</height>
-      <texture>#MovingPictures.DVDArt\#imdbnumber.png</texture>
+      <texture>#MP.Thumbs\CDArt\Movies\#imdbnumber.png</texture>
       <keepaspectratio>yes</keepaspectratio>
       <visible>facadeview.list</visible>
       <animation effect="rotate" delay="0" end="-360" centre="475,258" time="8000" loop="true" condition="true">Conditional</animation>
