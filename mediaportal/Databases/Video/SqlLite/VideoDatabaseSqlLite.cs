@@ -716,7 +716,13 @@ namespace MediaPortal.Video.Database
         
         if (lPathId < 0)
         {
-          return -1;
+            strPath = strFilenameAndPath;
+            DatabaseUtility.RemoveInvalidChars(ref strPath);
+            lPathId = GetPath(strPath);
+            if (lPathId < 0)
+            {
+                return -1;
+            }
         }
 
         string strSQL = String.Format("SELECT * FROM files WHERE idpath={0}", lPathId);
