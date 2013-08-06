@@ -125,7 +125,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>C:\Program Files %28x86%29\Team MediaPortal\MediaPortal\</OutputPath>
     <DefineConstants>DEBUG;TRACE;UseCaptureCardDefinitions</DefineConstants>
     <BaseAddress>285212672</BaseAddress>
     <DebugType>full</DebugType>
@@ -705,7 +705,6 @@
     <EmbeddedResource Include="Sections\BDZoom.resx">
       <DependentUpon>BDZoom.cs</DependentUpon>
     </EmbeddedResource>
-
     <EmbeddedResource Include="Sections\GeneralStartupResume.resx">
       <DependentUpon>GeneralStartupResume.cs</DependentUpon>
       <SubType>Designer</SubType>
