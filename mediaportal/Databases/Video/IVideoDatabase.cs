@@ -120,7 +120,7 @@ namespace MediaPortal.Video.Database
     void DeleteMovie(string strFilenameAndPath);
     
     // Movie files and movies
-    int AddMovie(string strFilenameAndPath, bool bHassubtitles);
+    int AddMovie(string strFilenameAndPath, bool bHassubtitles, int lMovieId);
     void GetMovies(ref ArrayList movies);
     int GetMovieId(string strFilenameAndPath);
     int GetTitleBDId(int iFileId, out byte[] resumeData);

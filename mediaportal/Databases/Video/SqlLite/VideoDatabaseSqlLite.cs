@@ -843,7 +843,7 @@ namespace MediaPortal.Video.Database
           break;
         }
       }
-      return VideoDatabase.AddMovie(strFile, bHassubtitles);
+      return VideoDatabase.AddMovie(strFile, bHassubtitles,-1);
     }
 
     public int AddPath(string strPath)
@@ -2689,6 +2689,7 @@ namespace MediaPortal.Video.Database
           m_db.Execute(strSQL);
           // Update latest movies
           SetLatestMovieProperties();
+          Log.Debug("Videodatabase insert:{0} {1}", lMovieId, details1.Title);
         }
         else
         {
@@ -2713,8 +2714,8 @@ namespace MediaPortal.Video.Database
 
           //		Log.Error("dbs:{0}", strSQL);
           m_db.Execute(strSQL);
+          Log.Debug("Videodatabase Update:{0} {1}", lMovieId, details1.Title);
         }
-        
         VideoDatabase.GetMovieInfoById(details1.ID, ref details1);
       }
       catch (Exception ex)
@@ -3435,8 +3436,12 @@ namespace MediaPortal.Video.Database
         Open();
       }
     }
-
     public int AddMovie(string strFilenameAndPath, bool bHassubtitles)
+    {
+        return AddMovie(strFilenameAndPath, bHassubtitles, -1);
+    }
+
+      public int AddMovie(string strFilenameAndPath, bool bHassubtitles, int lMovieId)
     {
       if (m_db == null)
       {
@@ -3450,8 +3455,8 @@ namespace MediaPortal.Video.Database
         DatabaseUtility.RemoveInvalidChars(ref strPath);
         DatabaseUtility.RemoveInvalidChars(ref strFileName);
 
-        int lMovieId = GetMovie(strFilenameAndPath, false);
-        if (lMovieId < 0)
+        //int lMovieId = GetMovie(strFilenameAndPath, false);
+        if (GetMovie(strFilenameAndPath, false) < 0)
         {
           int lPathId = AddPath(strPath);
 
@@ -3464,10 +3469,18 @@ namespace MediaPortal.Video.Database
           {
             iHasSubs = 1;
           }
-          string strSQL = String.Format(
-            "INSERT INTO movie (idMovie, idPath, hasSubtitles, discid) VALUES( NULL, {0}, {1},'')", lPathId, iHasSubs);
-
-          m_db.Execute(strSQL);
+          if (lMovieId < 0)
+          {
+              string strSQL = String.Format(
+                "INSERT INTO movie (idMovie, idPath, hasSubtitles, discid) VALUES( NULL, {0}, {1},'')", lPathId, iHasSubs);
+              m_db.Execute(strSQL);
+          }
+          else
+          {
+              string strSQL = String.Format(
+                "INSERT INTO movie (idMovie, idPath, hasSubtitles, discid) VALUES( {0}, {1}, {2},'')", lMovieId, lPathId, iHasSubs);
+              m_db.Execute(strSQL);
+          }
           lMovieId = m_db.LastInsertID();
           AddFile(lMovieId, lPathId, strFileName);
         }
@@ -5176,6 +5189,16 @@ namespace MediaPortal.Video.Database
 
             #region Moviefiles
 
+            movie = new IMDBMovie();
+            if (nodeId != null)
+            {
+                id = Convert.ToInt32(nodeId.InnerText);
+            }
+            else
+            {
+                id = -1;
+            }
+
             // Get path from *.nfo file)
             Util.Utils.Split(nfoFile, out path, out nfofileName);
             // Movie filename to search from gathered files from nfo path
@@ -5242,7 +5265,7 @@ namespace MediaPortal.Video.Database
                   }
                 }
 
-                id = VideoDatabase.AddMovie(file, true);
+                id = VideoDatabase.AddMovie(file, true,id);
                 movie.ID = id;
                 isDvdBdFolder = true;
               }
@@ -5263,7 +5286,7 @@ namespace MediaPortal.Video.Database
                 if (tmpFile.Equals(nfofileName, StringComparison.InvariantCultureIgnoreCase))
                 {
                   Log.Debug("Import nfo-Adding file: {0}", logFilename);
-                  id = VideoDatabase.AddMovie(file, true);
+                  id = VideoDatabase.AddMovie(file, true,id);
                   movie.ID = id;
                 }
                 else if (isMovieFolder && tmpPath.Length > 0) // Every movie in it's own folder, compare by folder name
@@ -5275,7 +5298,7 @@ namespace MediaPortal.Video.Database
                     if (tmpPath.Equals(nfofileName, StringComparison.InvariantCultureIgnoreCase) || nfofileName.ToLowerInvariant() == "movie")
                     {
                       Log.Debug("Import nfo-Adding file: {0}", logFilename);
-                      id = VideoDatabase.AddMovie(file, true);
+                      id = VideoDatabase.AddMovie(file, true,id);
                       movie.ID = id;
                     }
                     else

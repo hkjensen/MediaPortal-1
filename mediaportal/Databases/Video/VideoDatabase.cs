@@ -471,9 +471,9 @@ namespace MediaPortal.Video.Database
       _database.DeleteMovie(strFilenameAndPath);
     }
 
-    public static int AddMovie(string strFilenameAndPath, bool bHassubtitles)
+    public static int AddMovie(string strFilenameAndPath, bool bHassubtitles, int lMovieId)
     {
-      return _database.AddMovie(strFilenameAndPath, bHassubtitles);
+      return _database.AddMovie(strFilenameAndPath, bHassubtitles, lMovieId);
     }
 
     public static void GetMovies(ref ArrayList movies)
