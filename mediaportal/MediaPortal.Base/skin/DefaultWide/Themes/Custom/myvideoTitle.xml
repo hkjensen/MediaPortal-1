@@ -251,10 +251,10 @@
       <description>Rotating Movie disc</description>
       <type>image</type>
       <id>0</id>
-      <posX>930</posX>
-      <posY>200</posY>
-      <width>260</width>
-      <height>250</height>
+      <posX>965</posX>
+      <posY>225</posY>
+      <width>180</width>
+      <height>200</height>
       <texture>#MP.Thumbs\CDArt\Movies\#imdbnumber.png</texture>
       <keepaspectratio>yes</keepaspectratio>
       <visible>facadeview.list</visible>
