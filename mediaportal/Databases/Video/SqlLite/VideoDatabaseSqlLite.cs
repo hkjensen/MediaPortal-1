@@ -6072,30 +6072,31 @@ namespace MediaPortal.Video.Database
             movie.Cast = cast;
 
             #endregion
-
             #region UserGroups
 
             XmlNodeList userGroups = nodeMovie.SelectNodes("set");
-            
+
             foreach (XmlNode nodeUserGroup in userGroups)
             {
-              string strUserGroup = string.Empty;
-              
-              if (nodeUserGroup != null && nodeUserGroup.InnerText != null)
-              {
-                strUserGroup = nodeUserGroup.InnerText;
+                string strUserGroup = string.Empty;
 
-                if (!string.IsNullOrEmpty(strUserGroup))
+                if (nodeUserGroup != null && nodeUserGroup.InnerText != null)
                 {
-                  int iUserGroup = AddUserGroup(strUserGroup);
-                  AddUserGroupToMovie(movie.ID, iUserGroup);
+                    strUserGroup = nodeUserGroup.InnerText;
+
+                    if (!string.IsNullOrEmpty(strUserGroup))
+                    {
+                        int iUserGroup = AddUserGroup(strUserGroup);
+                        Log.Debug("Import nfo-AddUserGroupToMovie movieId = {0} UserGroup {1}.", id, strUserGroup);
+                        AddUserGroupToMovie(id, iUserGroup);
+                    }
                 }
-              }
             }
 
             #endregion
 
             VideoDatabase.SetMovieInfoById(id, ref movie, true);
+
           }
         }
       }
