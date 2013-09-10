@@ -80,6 +80,31 @@
       <label>-</label>
     </control>
     <control>
+      <description>Rotating album cd</description>
+      <type>image</type>
+      <id>0</id>
+      <posX>815</posX>
+      <posY>190</posY>
+      <width>240</width>
+      <height>240</height>
+      <texture>#MP.Thumbs\CDArt\Music\#Play.Current.Artist - #Play.Current.Album.png</texture>
+      <keepaspectratio>yes</keepaspectratio>
+      <animation effect="rotate" delay="0" end="-360" centre="120,120" time="12000" loop="true" condition="true">Conditional</animation>
+    </control>
+    <control>
+      <type>image</type>
+      <description>album cd image</description>
+      <id>112</id>
+      <posX>945</posX>
+      <posY>180</posY>
+      <width>260</width>
+      <height>260</height>
+      <texture mask="cdthumbmask.png">#play.current.thumb</texture>
+      <keepaspectratio>yes</keepaspectratio>
+      <centered>yes</centered>
+      <zoom>yes</zoom>
+    </control>
+    <control>
       <type>image</type>
       <description>album art image</description>
       <id>112</id>
