@@ -1706,7 +1706,14 @@ namespace MediaPortal.Configuration.Sections
         ProgressBarAdvance(ref pbSearchCover, "Searching IMPAw... ", true);
 
         IMPAwardsSearch impSearch = new IMPAwardsSearch();
-        impSearch.SearchCovers(CurrentMovie.Title, CurrentMovie.IMDBNumber);
+        if (CurrentMovie.Year > 1900)
+        {
+          impSearch.SearchCovers(CurrentMovie.Title + " " + CurrentMovie.Year, CurrentMovie.IMDBNumber);
+        }
+        else
+        {
+          impSearch.SearchCovers(CurrentMovie.Title, CurrentMovie.IMDBNumber);
+        }
 
         if ((impSearch.Count > 0) && (impSearch[0] != string.Empty))
         {
@@ -2378,7 +2385,9 @@ namespace MediaPortal.Configuration.Sections
       string parserIndexUrl = @"http://install.team-mediaportal.com/MP1/VDBParserStrings.xml";
       string internalGrabberScriptFile = Config.GetFile(Config.Dir.Config, "scripts\\InternalActorMoviesGrabber.csscript");
       string internalGrabberScriptUrl = @"http://install.team-mediaportal.com/MP1/InternalGrabber/InternalActorMoviesGrabber.csscript";
-
+      string internalMovieImagesGrabberScriptFile = Config.GetFile(Config.Dir.Config, "scripts\\InternalMovieImagesGrabber.csscript");
+      string internalMovieImagesGrabberScriptUrl = @"http://install.team-mediaportal.com/MP1/InternalGrabber/InternalMovieImagesGrabber.csscript";
+      
       if (!Win32API.IsConnectedToInternet())
       {
         MessageBox.Show("Update failed. Please check your internet connection!", "", MessageBoxButtons.OK,
@@ -2401,12 +2410,23 @@ namespace MediaPortal.Configuration.Sections
         return;
       }
 
-      _progressDialog.SetLine1("Downloading the InternalGrabberScript file...");
+      _progressDialog.SetLine1("Downloading the InternalActorsGrabberScript file...");
       _progressDialog.SetLine2("Downloading...");
       _progressDialog.Total = 1;
       _progressDialog.Count = 1;
       _progressDialog.Show();
       if (DownloadFile(internalGrabberScriptFile, internalGrabberScriptUrl, Encoding.Default) == false)
+      {
+        _progressDialog.CloseProgress();
+        return;
+      }
+
+      _progressDialog.SetLine1("Downloading the InternalImagesGrabberScript file...");
+      _progressDialog.SetLine2("Downloading...");
+      _progressDialog.Total = 1;
+      _progressDialog.Count = 1;
+      _progressDialog.Show();
+      if (DownloadFile(internalMovieImagesGrabberScriptFile, internalMovieImagesGrabberScriptUrl, Encoding.Default) == false)
       {
         _progressDialog.CloseProgress();
         return;
@@ -2978,7 +2998,15 @@ namespace MediaPortal.Configuration.Sections
         IMPAwardsSearch impSearch = new IMPAwardsSearch();
         if (tmdbSearch.Count == 0 && chbImpAwCoverSource.Checked)
         {
-          impSearch.SearchCovers(movie.Title, movie.IMDBNumber);
+          if (movie.Year > 1900)
+          {
+            impSearch.SearchCovers(movie.Title + " " + movie.Year, movie.IMDBNumber);
+          }
+          else
+          {
+            impSearch.SearchCovers(movie.Title, movie.IMDBNumber);
+          }
+
           if ((impSearch.Count > 0) && (impSearch[0] != string.Empty))
           {
             // Update database with new cover
@@ -3096,8 +3124,7 @@ namespace MediaPortal.Configuration.Sections
           if (strFile != string.Empty & strPath != string.Empty)
           {
             FanArt fanartSearch = new FanArt();
-            fanartSearch.GetTmdbFanartByUrl
-              (CurrentMovie.ID, fanart.Url, _fanartImgIndex);
+            fanartSearch.GetTmdbFanartByUrl(CurrentMovie.IMDBNumber,CurrentMovie.ID, fanart.Url, _fanartImgIndex);
             FanArt.GetFanArtfilename(CurrentMovie.IMDBNumber, CurrentMovie.ID, _fanartImgIndex, out strFile);
             pictureBoxFanArt.ImageLocation = strFile;
             VideoDatabase.SetFanartURL(CurrentMovie.ID, fanart.Url);

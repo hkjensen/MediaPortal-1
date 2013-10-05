@@ -35,7 +35,6 @@ namespace MediaPortal.Util
   public class FanArt
   {
     private ArrayList _fanartList = new ArrayList();
-    private string _fileFanArt = string.Empty;
     private string _fileFanArtDefault = string.Empty;
     private string _fileMovie = string.Empty;
     private string _fanartUrl = string.Empty;
@@ -69,7 +68,7 @@ namespace MediaPortal.Util
       get { return _fileMovie; }
     }
 
-    # region Public methods
+    #region Public methods
 
     /// <summary>
     /// Use this to set local user fanart. Parameter title should begin with file:// or http://
@@ -102,7 +101,7 @@ namespace MediaPortal.Util
 
       if (Directory.Exists(configDir))
       {
-          string dbFile = SetFanArtFileName(imdbTT, movieId, index);
+        string dbFile = SetFanArtFileName(imdbTT, movieId, index);
 
         if (!isUrl)
         {
@@ -125,7 +124,7 @@ namespace MediaPortal.Util
         {
           try
           {
-            DeleteFanart(movieId, index);
+            DeleteFanart(imdbTT, movieId, index);
             var webClient = new WebClient();
             webClient.DownloadFile(localFile, dbFile);
             webClient.Dispose();
@@ -161,132 +160,24 @@ namespace MediaPortal.Util
       {
         return;
       }
-
+      
       _fanartList.Clear();
-
-      string[] vdbParserStr = VdbParserString();
-
-      if (vdbParserStr == null || vdbParserStr.Length != 6)
-      {
-        return;
-      }
+      InternalCSScriptGrabbersLoader.Movies.ImagesGrabber tmdbFanartApiScraper = new InternalCSScriptGrabbersLoader.Movies.ImagesGrabber();
 
       try
       {
-        string strAbsUrl = string.Empty;
-        string tmdbUrl = string.Empty; // TMDB Fanart api URL
-        string tmdbUrlWorkaround = string.Empty; // Sometimes link conatains double "/" before ttnumber
-        // Firts try by IMDB id (100% accurate) then, if fail, by movie name (first result will be taken as defult fanart, no random)
-        if ( imdbTT != string.Empty && imdbTT.StartsWith("tt"))
+        if (tmdbFanartApiScraper.LoadScript())
         {
-          //tmdbUrl = "http://api.themoviedb.org/2.1/Movie.imdbLookup/en/xml/2ed40b5d82aa804a2b1fcedb5ca8d97a/" +
-          //          imdbTT;
-          tmdbUrl = vdbParserStr[0] + imdbTT;
-          //tmdbUrlWorkaround =
-          //  "http://api.themoviedb.org/2.1/Movie.imdbLookup/en/xml/2ed40b5d82aa804a2b1fcedb5ca8d97a//" +
-          //  imdbTT;
-          tmdbUrlWorkaround = vdbParserStr[1] + imdbTT;
-        }
-        else
-        {
-          if (strSearch == string.Empty)
-          {
-            //tmdbUrl = "http://api.themoviedb.org/2.1/Movie.search/en/xml/2ed40b5d82aa804a2b1fcedb5ca8d97a/" +
-            //          title;
-            tmdbUrl = vdbParserStr[2] + title;
-            //tmdbUrlWorkaround = "http://api.themoviedb.org/2.1/Movie.search/en/xml/2ed40b5d82aa804a2b1fcedb5ca8d97a//" +
-            //                    title;
-            tmdbUrlWorkaround = vdbParserStr[3] + title;
-          }
-          else
-          {
-            //tmdbUrl = "http://api.themoviedb.org/2.1/Movie.search/en/xml/2ed40b5d82aa804a2b1fcedb5ca8d97a/" +
-            //          strSearch;
-            tmdbUrl = vdbParserStr[2] +strSearch;
-            //tmdbUrlWorkaround = "http://api.themoviedb.org/2.1/Movie.search/en/xml/2ed40b5d82aa804a2b1fcedb5ca8d97a//" +
-            //                    strSearch;
-            tmdbUrlWorkaround = vdbParserStr[3] + strSearch;
-          }
-          random = false;
-        }
-        // Download fanart xml 
-        string tmdbXml = string.Empty;
-        if (!GetPage(tmdbUrl, "utf-8", out strAbsUrl, ref tmdbXml))
-        {
-          if (!GetPage(tmdbUrlWorkaround, "utf-8", out strAbsUrl, ref tmdbXml))
-          {
-            Log.Info("Fanart Serach: TMDB returns no API result for - {0} ({1})", title, tmdbUrl);
-            return;
-          }
-        }
-
-        //string matchBackdrop = "<image\\stype=\"backdrop\"\\surl=\"(?<BackDrop>.*?)\"";
-        string matchBackdrop = vdbParserStr[4];
-
-        // Check FanArt Plugin directory in MP configuration folder (it will exists if FA plugin is installed)
-        string configDir;
-        GetFanArtFolder(out configDir);
-        // Check if FanArt directory Exists
-        if (Directory.Exists(configDir))
-        {
-          MatchCollection mcBd = Regex.Matches(tmdbXml, matchBackdrop);
-          // Set fanart collection
-          if (mcBd.Count != 0)
-          {
-            foreach (Match mBd in mcBd)
-            {
-              string strBd = string.Empty;
-              strBd = mBd.Groups["BackDrop"].Value;
-              
-              if (strBd.Contains(vdbParserStr[5]))
-              {
-                // Hack the extension cause many files shows as png but in reality on TMDB they are jpg (bug in API)
-                int extfile = 0;
-                extfile = strBd.LastIndexOf(".");
-                strBd = strBd.Remove(extfile) + ".jpg";
-                _fanartList.Add(strBd);
-              }
-            }
-          }
-          else
-          {
-            Log.Info("Fanart Serach: No fanart found for - {0} ({1})", title, tmdbUrl);
-            return;
-          }
-          // Check if fanart collection is lower than wanted fanarts quantity per movie
-          if (_fanartList.Count < countFA)
-            countFA = _fanartList.Count;
-
-          if (_fanartList.Count > 0)
-          {
-            // Delete old FA
-            DeleteFanarts(imdbTT,movieId);
-
-            if (countFA == 1) //Only one fanart found
-            {
-                DownloadFanart(imdbTT,movieId, 0);
-            }
-            else //Get max 5 fanart per movie
-            {
-              //Randomize order of fanarts in array
-              if (_fanartList.Count > countFA && random)
-                ShuffleFanart(ref _fanartList);
-
-              _fileFanArtDefault = SetFanArtFileName(movieId, 0);
-
-              for (int i = 0; i < countFA; i++)
-              {
-                  DownloadFanart(imdbTT, movieId, i);
-              }
-            }
-          }
+          _fanartList = tmdbFanartApiScraper.MovieImagesGrabber.
+            GetTmdbFanartByApi(movieId, imdbTT, title, random, countFA, strSearch, out _fileFanArtDefault, out _fanartUrl);
         }
       }
       catch (Exception ex)
       {
-        Log.Error("GetFanart TMDB API error: {0}", ex.Message);
+        Log.Error("Util Fanart GetTmdbFanartByApi error: {0}", ex.Message);
       }
-      finally { }
+
+      tmdbFanartApiScraper = null;
     }
 
     /// <summary>
@@ -296,7 +187,7 @@ namespace MediaPortal.Util
     /// <param name="movieId"></param>
     /// <param name="url"></param>
     /// <param name="index"></param>
-    public void GetTmdbFanartByUrl(int movieId, string url, int index)
+    public void GetTmdbFanartByUrl(string imdbTT,int movieId, string url, int index)
     {
       if (!Win32API.IsConnectedToInternet())
       {
@@ -310,12 +201,12 @@ namespace MediaPortal.Util
 
         if (Directory.Exists(configDir))
         {
-          _fileFanArt = SetFanArtFileName(movieId, index);
+          string fileFanArt = SetFanArtFileName(imdbTT,movieId, index);
 
           DeleteFanart(movieId, index);
 
           WebClient webClient = new WebClient();
-          webClient.DownloadFile(url, _fileFanArt);
+          webClient.DownloadFile(url, fileFanArt);
           webClient.Dispose();
         }
       }
@@ -385,10 +276,10 @@ namespace MediaPortal.Util
       string titleExt = Utils.GetCoverFilename(id, imdbTT, title);
 
       string file = Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
-      DeleteFile(file);
+      Util.Utils.FileDelete(file);
 
       file = Utils.GetCoverArtName(Thumbs.MovieTitle, titleExt);
-      DeleteFile(file);
+      Util.Utils.FileDelete(file);
     }
 
     // Helper funct to delete fanarts
@@ -405,7 +296,7 @@ namespace MediaPortal.Util
       for (int i = 0; i < fanartQ; i++)
       {
         string file = SetFanArtFileName(imdbTT,movieId, i);
-        DeleteFile(file);
+        Util.Utils.FileDelete(file);
       }
     }
 
@@ -423,7 +314,7 @@ namespace MediaPortal.Util
       GetFanArtFolder(out configDir);
 
       string file = SetFanArtFileName(imdbTT,movieId, index);
-      DeleteFile(file);
+      Util.Utils.FileDelete(file);
     }
 
     // Returns default MP fanart folder
@@ -465,14 +356,14 @@ namespace MediaPortal.Util
       GetFanArtFolder(out configDir);
       string ext = ".jpg";
       //
-        if(string.IsNullOrEmpty(imdbTT))
-        {
-          return configDir + movieId + "{" + index + "}" + ext;
-        }
-        else
-        {
-          return configDir + imdbTT + "{" + index + "}" + ext;
-        }
+      if(string.IsNullOrEmpty(imdbTT))
+      {
+        return configDir + movieId + "{" + index + "}" + ext;
+      }
+      else
+      {
+        return configDir + imdbTT + "{" + index + "}" + ext;
+      }
     }
 
     /// <summary>
@@ -511,7 +402,6 @@ namespace MediaPortal.Util
               if (c == i)
               {
                 unclean = true;
-                //Log.Warn("Utils: *** File name {1} still contains invalid chars - {0}", Convert.ToString(c), strFName);
                 strFName = strFName.Replace(c, ' ');
                 break;
               }
@@ -520,118 +410,36 @@ namespace MediaPortal.Util
       }
       return strFName;
     }
-
-    private string[] VdbParserString()
-    {
-      string[] vdbParserStr = VideoDatabaseParserStrings.GetParserStrings("FanArt");
-      return vdbParserStr;
-    }
-
-    #endregion
-
+    #endregion 
     #region Private Methods
 
-    // Download and save fanart
-    private void DownloadFanart(string imdbTT,int movieId, int index)
+    public static string GetRandomFanartFileName(int movieId, string imdbTT)
     {
-      try
+      string fanart = string.Empty;
+      
+      if (movieId > 0)
       {
-        _fileFanArt = SetFanArtFileName(imdbTT, movieId, index);
-        var webClient = new WebClient();
-        webClient.DownloadFile((string)_fanartList[index], _fileFanArt);
-        _fanartUrl = _fanartList[0].ToString();
-        webClient.Dispose();
-      }
-      catch (Exception ex)
-      {
-        Log.Error("Download fanart error: {0}", ex.Message);
-      }
-    }
+          ArrayList fanarts = new ArrayList();
 
-    // Randomize fanart array list
-    private void ShuffleFanart(ref ArrayList faArray)
-    {
-      Random rnd = new Random();
-      for (int i = faArray.Count - 1; i > 0; i--)
-      {
-        int position = rnd.Next(i + 1);
-        object temp = faArray[i];
-        faArray[i] = faArray[position];
-        faArray[position] = temp;
-      }
-    }
-
-    private static void DeleteFile(string file)
-    {
-      try
-      {
-        if (File.Exists(file))
-        {
-          File.Delete(file);
-        }
-      }
-      catch (Exception ex)
-      {
-        Log.Error("Fanart/covers delete error: {0}", ex.Message);
-      }
-    }
-
-    // Get URL HTML body
-    private bool GetPage(string strUrl, string strEncode, out string absoluteUri, ref string strBody)
-    {
-      bool sucess = true;
-      absoluteUri = String.Empty;
-      Stream receiveStream = null;
-      StreamReader sr = null;
-      WebResponse result = null;
-      try
-      {
-        // Make the Webrequest
-        //Log.Info("IMDB: get page:{0}", strURL);
-        WebRequest req = WebRequest.Create(strUrl);
-        req.Timeout = 20000;
-        result = req.GetResponse();
-        receiveStream = result.GetResponseStream();
-
-        // Encoding: depends on selected page
-        Encoding encode = Encoding.GetEncoding(strEncode);
-        sr = new StreamReader(receiveStream, encode);
-        strBody = sr.ReadToEnd();
-
-        absoluteUri = result.ResponseUri.AbsoluteUri;
-      }
-      catch (Exception)
-      {
-        sucess = false;
-      }
-      finally
-      {
-        if (sr != null)
-        {
-          try
+          for (int i = 0; i < 5; i++)
           {
-            sr.Close();
+            GetFanArtfilename(imdbTT,movieId, i, out fanart);
+
+            if (File.Exists(fanart))
+            {
+              fanarts.Add(fanart);
+            }
           }
-          catch (Exception) { }
-        }
-        if (receiveStream != null)
-        {
-          try
+
+          if (fanarts.Count > 0)
           {
-            receiveStream.Close();
+            Random rnd = new Random();
+            int r = rnd.Next(fanarts.Count);
+            fanart = fanarts[r].ToString();
           }
-          catch (Exception) { }
-        }
-        if (result != null)
-        {
-          try
-          {
-            result.Close();
-          }
-          catch (Exception) { }
-        }
       }
-      return sucess;
+
+      return fanart;
     }
 
     #endregion
