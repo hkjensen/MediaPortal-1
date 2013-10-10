@@ -49,6 +49,19 @@ using Layout = MediaPortal.GUI.Library.GUIFacadeControl.Layout;
 
 namespace MediaPortal.GUI.Video
 {
+  internal class ComboBoxItemDatabase
+  {
+    public string Database;
+    public string Name;
+    public string Language;
+    public string Limit;
+
+    public override string ToString()
+    {
+      return String.Format("{0}: {1} [{2}]", Language, Name, Database);
+    }
+  }
+
   /// <summary>
   /// MyVideo GUI class when not using DB driven views.
   /// </summary>
@@ -164,8 +177,8 @@ namespace MediaPortal.GUI.Video
     
     // grabber index holds information/urls of available grabbers to download
     private static string _grabberIndexFile = Config.GetFile(Config.Dir.Config, "MovieInfoGrabber.xml");
-    private static string _grabberIndexUrl = @"http://install.team-mediaportal.com/MP1/MovieInfoGrabber.xml";
-    private static Dictionary<string, IIMDBScriptGrabber> _grabberList;
+    private static string _grabberIndexUrl = @"http://install.team-mediaportal.com/MP1/MovieInfoGrabber_V16.xml";
+    private static Dictionary<string, ComboBoxItemDatabase> _grabberList;
 
     private int _resetCount;
     private string _selectedFilename = string.Empty;
@@ -178,7 +191,7 @@ namespace MediaPortal.GUI.Video
     private bool _useOnlyNfoScraper = false;
     private bool _doNotUseDatabase = false;
     
-    private static IMDB.InternalActorsScriptGrabber _internalGrabber = new IMDB.InternalActorsScriptGrabber();
+    //private static IMDB.InternalActorsScriptGrabber _internalGrabber = new IMDB.InternalActorsScriptGrabber();
 
     #endregion
 
@@ -2489,7 +2502,8 @@ namespace MediaPortal.GUI.Video
           return;
         }
 
-        _internalGrabber.LoadScript();
+        IMDB.InternalActorsScriptGrabber.ResetGrabber();
+        Util.InternalCSScriptGrabbersLoader.Movies.ImagesGrabber.ResetGrabber();
         progressDialog.Close();
       }
 
@@ -2627,7 +2641,7 @@ namespace MediaPortal.GUI.Video
         return;
       }
 
-      _grabberList = new Dictionary<string, IIMDBScriptGrabber>();
+      _grabberList = new Dictionary<string, ComboBoxItemDatabase>();
 
       Directory.CreateDirectory(IMDB.ScriptDirectory);
       DirectoryInfo di = new DirectoryInfo(IMDB.ScriptDirectory);
@@ -2639,10 +2653,20 @@ namespace MediaPortal.GUI.Video
       {
         try
         {
-          AsmHelper script = new AsmHelper(CSScript.Load(f.FullName, null, false));
-          IIMDBScriptGrabber grabber = (IIMDBScriptGrabber)script.CreateObject("Grabber");
+          CSScript.GlobalSettings.AddSearchDir(AppDomain.CurrentDomain.BaseDirectory);
 
-          _grabberList.Add(Path.GetFileNameWithoutExtension(f.FullName), grabber);
+          using (AsmHelper script = new AsmHelper(CSScript.Compile(f.FullName), "Temp", true))
+          {
+            script.ProbingDirs = CSScript.GlobalSettings.SearchDirs.Split(';');
+            IIMDBScriptGrabber grabber = (IIMDBScriptGrabber) script.CreateObject("Grabber");
+
+            ComboBoxItemDatabase item = new ComboBoxItemDatabase();
+            item.Database = Path.GetFileNameWithoutExtension(f.FullName);
+            item.Language = grabber.GetLanguage();
+            item.Limit = IMDB.DEFAULT_SEARCH_LIMIT.ToString();
+            item.Name = grabber.GetName();
+            _grabberList.Add(item.Database, item);
+          }
         }
         catch (Exception ex)
         {
@@ -2660,9 +2684,9 @@ namespace MediaPortal.GUI.Video
         dbNumber = xmlreader.GetValueAsInt("moviedatabase", "number", 0);
       }
 
-      foreach (KeyValuePair<string, IIMDBScriptGrabber> grabber in _grabberList)
+      foreach (KeyValuePair<string, ComboBoxItemDatabase> grabber in _grabberList)
       {
-        dlg.Add(grabber.Value.GetName() + " - " + grabber.Value.GetLanguage());
+        dlg.Add(grabber.Value.Name + " - " + grabber.Value.Language);
 
         if (defaultDatabase == grabber.Key)
         {
@@ -2685,7 +2709,7 @@ namespace MediaPortal.GUI.Video
 
       using (Profile.Settings xmlwriter = new MPSettings())
       {
-        KeyValuePair<string, IIMDBScriptGrabber> grabber = _grabberList.ElementAt(dlg.SelectedLabel);
+        KeyValuePair<string, ComboBoxItemDatabase> grabber = _grabberList.ElementAt(dlg.SelectedLabel);
 
 
         if (grabber.Key != "IMDB")
@@ -2696,8 +2720,8 @@ namespace MediaPortal.GUI.Video
           }
           xmlwriter.SetValue("moviedatabase", "number", dbNumber);
           xmlwriter.SetValue("moviedatabase", "database" + 0, grabber.Key);
-          xmlwriter.SetValue("moviedatabase", "title" + 0, grabber.Value.GetName());
-          xmlwriter.SetValue("moviedatabase", "language" + 0, grabber.Value.GetLanguage());
+          xmlwriter.SetValue("moviedatabase", "title" + 0, grabber.Value.Name);
+          xmlwriter.SetValue("moviedatabase", "language" + 0, grabber.Value.Language);
           xmlwriter.SetValue("moviedatabase", "limit" + 0, 25);
         }
         else
@@ -2712,6 +2736,8 @@ namespace MediaPortal.GUI.Video
           }
         }
       }
+
+      IMDB.MovieInfoDatabase.ResetGrabber();
     }
     
     public static void ResetShares()
@@ -2741,10 +2767,10 @@ namespace MediaPortal.GUI.Video
       _virtualDirectory.SetExtensions(extensions);
     }
 
-    public static IMDB.InternalActorsScriptGrabber InternalGrabber
-    {
-      get { return _internalGrabber; }
-    }
+    //public static IMDB.InternalActorsScriptGrabber InternalGrabber
+    //{
+    //  get { return _internalGrabber; }
+    //}
 
     #endregion
 
