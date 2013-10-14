@@ -1,7 +1,28 @@
-﻿using System;
+﻿#region Copyright (C) 2005-2013 Team MediaPortal
+
+// Copyright (C) 2005-2013 Team MediaPortal
+// http://www.team-mediaportal.com
+// 
+// MediaPortal is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+// 
+// MediaPortal is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with MediaPortal. If not, see <http://www.gnu.org/licenses/>.
+
+#endregion
+
+using System;
 using System.Collections;
 using System.IO;
 using MediaPortal.Configuration;
+using MediaPortal.ExtensionMethods;
 using MediaPortal.GUI.Library;
 using CSScriptLibrary;
 
@@ -17,10 +38,28 @@ namespace MediaPortal.Util
 
       public class ImagesGrabber
       {
-        private IInternalMovieImagesGrabber _movieImagesGrabber;
-        private bool _movieImagesGrabberLoaded;
+        private static IInternalMovieImagesGrabber _movieImagesGrabber;
+        private static bool _movieImagesGrabberLoaded;
+        private static AsmHelper _asmHelper;
 
-        public IInternalMovieImagesGrabber MovieImagesGrabber
+        public static void ResetGrabber()
+        {
+          if (_asmHelper != null)
+          {
+            _asmHelper.Dispose();
+            _asmHelper = null;
+          }
+
+          if (_movieImagesGrabber != null)
+          {
+            _movieImagesGrabber.SafeDispose();
+            _movieImagesGrabber = null;
+          }
+
+          _movieImagesGrabberLoaded = false;
+        }
+
+        public static IInternalMovieImagesGrabber MovieImagesGrabber
         {
           get
           {
@@ -39,7 +78,7 @@ namespace MediaPortal.Util
           set { _movieImagesGrabber = value; }
         }
 
-        public bool LoadScript()
+        private static bool LoadScript()
         {
           string scriptFileName = InternalMovieScriptDirectory + @"\InternalMovieImagesGrabber.csscript";
 
@@ -53,8 +92,8 @@ namespace MediaPortal.Util
           try
           {
             Environment.CurrentDirectory = Config.GetFolder(Config.Dir.Base);
-            AsmHelper script = new AsmHelper(CSScript.Load(scriptFileName, null, false));
-            MovieImagesGrabber = (IInternalMovieImagesGrabber) script.CreateObject("MovieImagesGrabber");
+            _asmHelper = new AsmHelper(CSScript.Load(scriptFileName, null, false));
+            MovieImagesGrabber = (IInternalMovieImagesGrabber) _asmHelper.CreateObject("MovieImagesGrabber");
           }
           catch (Exception ex)
           {
@@ -84,9 +123,9 @@ namespace MediaPortal.Util
         // TMDB ActorImage
         ArrayList GetTmdbActorImage(string actorName);
       }
-
     }
 
     #endregion
+    
   }
 }
