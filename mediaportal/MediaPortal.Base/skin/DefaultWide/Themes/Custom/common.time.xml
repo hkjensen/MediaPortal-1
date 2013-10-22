@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <window>
   <controls>
     <control>
@@ -33,7 +33,7 @@
       <type>image</type>
       <id>0</id>
       <posX>1200</posX>
-      <posY>2</posY>
+      <posY>0</posY>
       <texture>#WorldWeather.TodayIconImage</texture>
       <width>64</width>
       <height>64</height>
