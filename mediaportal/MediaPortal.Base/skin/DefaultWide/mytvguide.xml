@@ -6,6 +6,7 @@
   <controls>
     <include condition="#(eq(#skin.tvguide.rows,' 9'))">mytvguide.9lines.xml</include>
     <include condition="#(eq(#skin.tvguide.rows,' 11'))">mytvguide.11lines.xml</include>
+    <import>common.time.xml</import>
     <include condition="#(skin.hassetting('#skin.tvguide.usecolorsforbuttons'))">mytvguide.colors.xml</include>
   </controls>
 </window>

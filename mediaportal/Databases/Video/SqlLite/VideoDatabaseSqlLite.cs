@@ -715,13 +715,7 @@ namespace MediaPortal.Video.Database
         
         if (lPathId < 0)
         {
-            strPath = strFilenameAndPath;
-            DatabaseUtility.RemoveInvalidChars(ref strPath);
-            lPathId = GetPath(strPath);
-            if (lPathId < 0)
-            {
-                return -1;
-            }
+          return -1;
         }
 
         string strSQL = String.Format("SELECT * FROM files WHERE idpath={0} AND strFilename = '{1}'", lPathId, strFileName);
@@ -1116,7 +1110,17 @@ namespace MediaPortal.Video.Database
           isImage = true;
         }
 
-        MediaInfoWrapper mInfo = new MediaInfoWrapper(strFilenameAndPath);
+        // Set currentMediaInfoFilePlaying for later use if it's the same media to play (it will cache mediainfo data)
+        MediaInfoWrapper mInfo = null;
+        if (!string.IsNullOrEmpty(g_Player.currentMediaInfoFilePlaying) && (g_Player.currentMediaInfoFilePlaying == strFilenameAndPath))
+        {
+          mInfo = g_Player._mediaInfo;
+        }
+        else
+        {
+          g_Player.currentMediaInfoFilePlaying = strFilenameAndPath;
+          mInfo = g_Player._mediaInfo = new MediaInfoWrapper(strFilenameAndPath);
+        }
 
         if (isImage && DaemonTools.IsMounted(strFilenameAndPath))
         {
