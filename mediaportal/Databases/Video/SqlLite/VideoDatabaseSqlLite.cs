@@ -5227,7 +5227,7 @@ namespace MediaPortal.Video.Database
             XmlNode nodeCountry = nodeMovie.SelectSingleNode("country");
             XmlNode nodeReview = nodeMovie.SelectSingleNode("review");
             XmlNode nodeCredits = nodeMovie.SelectSingleNode("credits");
-
+            
             #endregion
 
             #region Moviefiles
@@ -6145,10 +6145,11 @@ namespace MediaPortal.Video.Database
             movie.Cast = cast;
 
             #endregion
+
             #region UserGroups
 
             XmlNodeList userGroups = nodeMovie.SelectNodes("set");
-
+            
             // Main node as <set> ---- </set> with subnodes name, rule, image
             foreach (XmlNode nodeUserGroup in userGroups)
             {
@@ -6280,7 +6281,6 @@ namespace MediaPortal.Video.Database
             #endregion
 
             
-
           }
         }
       }
