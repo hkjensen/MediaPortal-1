@@ -2144,7 +2144,7 @@ namespace TvPlugin
           {
             GUIListItem item = new GUIListItem();
             string channelName = activeRecording.ReferencedChannel().DisplayName;
-            string programTitle = activeRecording.Title.Trim(); // default is current EPG info
+            string programTitle = TVUtil.GetDisplayTitle(activeRecording); // default is current EPG info
 
             item.Label = channelName;
             item.Label2 = programTitle;
