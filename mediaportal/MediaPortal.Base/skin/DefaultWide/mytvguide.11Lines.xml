@@ -43,17 +43,6 @@
       <texture>general_overlay.png</texture>
     </control>
     <control>
-      <description>Date Time</description>
-      <type>label</type>
-      <id>0</id>
-      <posX>1244</posX>
-      <posY>10</posY>
-      <label>#date | #time</label>
-      <align>right</align>
-      <font>font11</font>
-      <textcolor>ff6FAFE1</textcolor>
-    </control>
-    <control>
       <description>Guide Group Label</description>
       <type>label</type>
       <id>11</id>

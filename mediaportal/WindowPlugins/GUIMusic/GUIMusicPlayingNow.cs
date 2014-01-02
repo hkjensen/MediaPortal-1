@@ -181,7 +181,7 @@ namespace MediaPortal.GUI.Music
         return;
       }
 
-      GUIGraphicsContext.form.BeginInvoke(new PlaybackChangedDelegate(DoOnEnded), new object[] {type, filename});
+      GUIGraphicsContext.form.Invoke(new PlaybackChangedDelegate(DoOnEnded), new object[] {type, filename});
     }
 
     private void DoOnEnded(g_Player.MediaType type, string filename)
@@ -227,7 +227,7 @@ namespace MediaPortal.GUI.Music
         return;
       }
 
-      GUIGraphicsContext.form.BeginInvoke(new PlaybackChangedDelegate(DoOnStarted),
+      GUIGraphicsContext.form.Invoke(new PlaybackChangedDelegate(DoOnStarted),
                                      new object[] {g_Player.MediaType.Music, BassMusicPlayer.Player.CurrentFile});
     }
 
@@ -239,7 +239,7 @@ namespace MediaPortal.GUI.Music
         return;
       }
 
-      GUIGraphicsContext.form.BeginInvoke(new PlaybackChangedDelegate(DoOnStarted), new object[] {type, filename});
+      GUIGraphicsContext.form.Invoke(new PlaybackChangedDelegate(DoOnStarted), new object[] {type, filename});
       UpdateSimilarTracks(filename);
     }
 
@@ -459,7 +459,7 @@ namespace MediaPortal.GUI.Music
           _vuMeter.ToLowerInvariant() != "none")
       {
         VUMeterTimer = new Timer();
-        VUMeterTimer.Interval = 200;
+        VUMeterTimer.Interval = 10;
         VUMeterTimer.Elapsed += new ElapsedEventHandler(OnVUMterTimerTickEvent);
         VUMeterTimer.Start();
       }
@@ -1267,26 +1267,34 @@ namespace MediaPortal.GUI.Music
         Log.Error(ex);
         return;
       }
-      
+
       var dbTracks = GetSimilarTracksInDatabase(tracks);
-      
+
       for (var i = 0; i < 3; i++)
       {
-        var trackNo = Randomizer.Next(0, dbTracks.Count);
-        var song = dbTracks[trackNo];
+        if (dbTracks.Count > 0)
+        {
+          var trackNo = Randomizer.Next(0, dbTracks.Count);
+          var song = dbTracks[trackNo];
 
-        var t = song.ToMusicTag();
-        var item = new GUIListItem
-                     {AlbumInfoTag = song, MusicTag = tag, IsFolder = false, Label = song.Title, Path = song.FileName};
-        item.AlbumInfoTag = song;
-        item.MusicTag = t;
-        GUIMusicBaseWindow.SetTrackLabels(ref item, MusicSort.SortMethod.Album);
-        dbTracks.RemoveAt(trackNo);  // remove song after adding to playlist to prevent the same sone being added twice
+          var t = song.ToMusicTag();
+          var item = new GUIListItem
+                       {
+                         AlbumInfoTag = song,
+                         MusicTag = tag,
+                         IsFolder = false,
+                         Label = song.Title,
+                         Path = song.FileName
+                       };
+          item.AlbumInfoTag = song;
+          item.MusicTag = t;
+          GUIMusicBaseWindow.SetTrackLabels(ref item, MusicSort.SortMethod.Album);
+          dbTracks.RemoveAt(trackNo); // remove song after adding to playlist to prevent the same sone being added twice
 
-        if (g_Player.currentFileName != filename) return;  // track has changed since request so ignore
-        
-        lstSimilarTracks.Add(item);
+          if (g_Player.currentFileName != filename) return; // track has changed since request so ignore
 
+          lstSimilarTracks.Add(item);
+        }
       }
     }
 
