@@ -277,6 +277,10 @@ namespace MediaPortal.Util
     }
 
     // Helper funct to delete fanarts
+    public static void DeleteFanarts(int movieId)
+    {
+        DeleteFanarts("", movieId);
+    }
     public static void DeleteFanarts(string imdbTT,int movieId)
     {
       if (movieId == -1)
