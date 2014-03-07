@@ -277,7 +277,7 @@ internal class MovieImagesGrabber : InternalCSScriptGrabbersLoader.Movies.IInter
 
           if (countFA == 1) //Only one fanart found
           {
-            DownloadFanart(movieId, 0, ref fanartList, ref fanartUrl);
+            DownloadFanart(movieId, imdbTT, 0, ref fanartList, ref fanartUrl);
           }
           else //Get max 5 fanart per movie
           {
@@ -287,11 +287,11 @@ internal class MovieImagesGrabber : InternalCSScriptGrabbersLoader.Movies.IInter
               ShuffleFanart(ref fanartList);
             }
 
-            fileFanArtDefault = MediaPortal.Util.FanArt.SetFanArtFileName(movieId, 0);
+            //fileFanArtDefault = MediaPortal.Util.FanArt.SetFanArtFileName(movieId,imdbTT, 0);
 
             for (int i = 0; i < countFA; i++)
             {
-              DownloadFanart(movieId, i, ref fanartList, ref fanartUrl);
+              DownloadFanart(movieId, imdbTT,i, ref fanartList, ref fanartUrl);
             }
           }
         }
@@ -306,11 +306,11 @@ internal class MovieImagesGrabber : InternalCSScriptGrabbersLoader.Movies.IInter
   }
 
   // Download and save fanart
-  private void DownloadFanart(int movieId, int index, ref ArrayList fanartList, ref string fanartUrl)
+  private void DownloadFanart(int movieId, string imdbTT, int index, ref ArrayList fanartList, ref string fanartUrl)
   {
     try
     {
-      string fileFanArt = MediaPortal.Util.FanArt.SetFanArtFileName(movieId, index);
+      string fileFanArt = MediaPortal.Util.FanArt.SetFanArtFileName(imdbTT, movieId, index);
       System.Net.WebClient webClient = new WebClient();
       webClient.DownloadFile((string) fanartList[index], fileFanArt);
       fanartUrl = fanartList[0].ToString();
