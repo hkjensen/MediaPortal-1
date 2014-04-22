@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ArrayOfDVBCTuning xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <!-- http://dvb.welho.fi/cable_kuo3.php -->
+  <!-- http://dvb.welho.fi/cable_oul3.php -->
   <DVBCTuning>
-    <Frequency>234000</Frequency>
+    <Frequency>330000</Frequency>
     <ModulationType>Mod128Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
@@ -42,7 +42,7 @@
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
   <DVBCTuning>
-    <Frequency>242000</Frequency>
+    <Frequency>378000</Frequency>
     <ModulationType>Mod128Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
@@ -82,12 +82,12 @@
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
   <DVBCTuning>
-    <Frequency>282000</Frequency>
+    <Frequency>242000</Frequency>
     <ModulationType>Mod256Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
   <DVBCTuning>
-    <Frequency>330000</Frequency>
+    <Frequency>386000</Frequency>
     <ModulationType>Mod128Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
@@ -107,7 +107,7 @@
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
   <DVBCTuning>
-    <Frequency>210000</Frequency>
+    <Frequency>234000</Frequency>
     <ModulationType>Mod128Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
@@ -122,12 +122,12 @@
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
   <DVBCTuning>
-    <Frequency>378000</Frequency>
+    <Frequency>178000</Frequency>
     <ModulationType>Mod128Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
   <DVBCTuning>
-    <Frequency>386000</Frequency>
+    <Frequency>394000</Frequency>
     <ModulationType>Mod128Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
@@ -137,7 +137,7 @@
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
   <DVBCTuning>
-    <Frequency>178000</Frequency>
+    <Frequency>210000</Frequency>
     <ModulationType>Mod128Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
