@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ArrayOfDVBCTuning xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <!-- http://dvb.welho.fi/cable_kuo3.php -->
+  <!-- http://dvb.welho.fi/cable_loh1.php -->
   <DVBCTuning>
     <Frequency>234000</Frequency>
     <ModulationType>Mod128Qam</ModulationType>
@@ -57,7 +57,7 @@
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
   <DVBCTuning>
-    <Frequency>290000</Frequency>
+    <Frequency>282000</Frequency>
     <ModulationType>Mod256Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
@@ -72,7 +72,7 @@
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
   <DVBCTuning>
-    <Frequency>258000</Frequency>
+    <Frequency>290000</Frequency>
     <ModulationType>Mod256Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
@@ -82,7 +82,7 @@
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
   <DVBCTuning>
-    <Frequency>282000</Frequency>
+    <Frequency>258000</Frequency>
     <ModulationType>Mod256Qam</ModulationType>
     <SymbolRate>6875</SymbolRate>
   </DVBCTuning>
