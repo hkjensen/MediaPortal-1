@@ -521,15 +521,19 @@ internal class Grabber : MarshalByRefObject, IIMDBScriptGrabber
       movieDetails.Votes = votes.Replace(",", "");
 
       // Plot short
-      regexPattern = @"<p\sitemprop=""description"">(?<moviePlotShort>.*?)</p>";
+      regexPattern = @"<p\sitemprop=""description"">(?<moviePlotShort>.*?)<a";
       string shortPlot = Regex.Match(strBody, regexPattern, RegexOptions.Singleline).Groups["moviePlotShort"].Value;
       shortPlot = HttpUtility.HtmlDecode(Utils.stripHTMLtags(shortPlot));
-
+      if (shortPlot == string.Empty)
+      {
+        regexPattern = @"<p\sitemprop=""description"">(?<moviePlotShort>.*?)</p>";
+        shortPlot = Regex.Match(strBody, regexPattern, RegexOptions.Singleline).Groups["moviePlotShort"].Value;
+        shortPlot = HttpUtility.HtmlDecode(Utils.stripHTMLtags(shortPlot));
+      }
       if (shortPlot != null)
       {
         movieDetails.PlotOutline = shortPlot.Trim();
       }
-
       // Plot long
       string strPlotUrl = "http://m.imdb.com/title/" + movieDetails.IMDBNumber + "/plotsummary";
       try
