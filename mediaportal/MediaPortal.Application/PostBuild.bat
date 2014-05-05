@@ -143,10 +143,6 @@ xcopy %1\Databases\bin\%2\HtmlAgilityPack.* . /Y /D
 REM ffmpeg 
 xcopy %1\..\Packages\ffmpeg.2.1.1\ffmpeg.exe MovieThumbnailer\ /Y /D
 
-REM iMON Display 
-xcopy %1\..\Packages\MediaPortal-iMON-Display.1.0.1\lib\iMONDisplay.dll /Y /D
-xcopy %1\..\Packages\MediaPortal-iMON-Display.1.0.1\lib\iMONDisplayWrapper.dll /Y /D
-
 REM Bass Core
 xcopy %1\..\Packages\BASS.2.4.10\bass.dll . /Y /D
 xcopy %1\..\Packages\BASS.NET.2.4.10.3\lib\net40\Bass.Net.dll . /Y /D
@@ -175,3 +171,7 @@ xcopy %1\..\Packages\bass.midi.2.4.8\bassmidi.dll "MusicPlayer\plugins\audio dec
 xcopy %1\..\Packages\bass.opus.2.4.1.3\bassopus.dll "MusicPlayer\plugins\audio decoders\" /Y /D
 xcopy %1\..\Packages\bass.wma.2.4.4\basswma.dll "MusicPlayer\plugins\audio decoders\" /Y /D
 xcopy %1\..\Packages\bass.wv.2.4.4\basswv.dll "MusicPlayer\plugins\audio decoders\" /Y /D
+
+REM iMON Display 
+xcopy %1\..\Packages\MediaPortal-iMON-Display.1.0.1\lib\iMONDisplay.dll /Y /D
+xcopy %1\..\Packages\MediaPortal-iMON-Display.1.0.1\lib\iMONDisplayWrapper.dll /Y /D

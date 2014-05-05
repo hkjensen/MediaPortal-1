@@ -2575,7 +2575,7 @@ namespace MediaPortal.Video.Database
           lDirector = details1.DirectorID;
         }
         // Plot
-        if (existingDetails.Plot.Equals("unknown") || updateTimeStamp)
+        if (existingDetails.Plot.Equals(Strings.Unknown) || updateTimeStamp || string.IsNullOrEmpty(existingDetails.Plot))
         {
             strLine = details1.Plot;
         }
@@ -2590,7 +2590,7 @@ namespace MediaPortal.Video.Database
         DatabaseUtility.RemoveInvalidChars(ref strLine);
         details1.UserReview = strLine;
         // Plot outline
-        if (existingDetails.PlotOutline.Equals("unknown") || updateTimeStamp)
+        if (existingDetails.PlotOutline.Equals(Strings.Unknown) || updateTimeStamp || string.IsNullOrEmpty(existingDetails.PlotOutline))
         {
             strLine = details1.PlotOutline;
         }
