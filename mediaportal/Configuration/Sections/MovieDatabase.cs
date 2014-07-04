@@ -4805,14 +4805,19 @@ namespace MediaPortal.Configuration.Sections
     private void buttonImportNfo_Click(object sender, EventArgs e)
     {
       FolderBrowserDialog fBrowser = new FolderBrowserDialog();
-
-      if (fBrowser.ShowDialog(this) != DialogResult.OK)
+      if (txtImportNfos.TextLength == 0)
       {
-        return;
+          if (fBrowser.ShowDialog(this) != DialogResult.OK)
+          {
+              return;
+          }
+          else
+          {
+              txtImportNfos.Text = fBrowser.SelectedPath;
+          }
       }
-
       _nfoFiles = new ArrayList();
-      GetNfoFiles(fBrowser.SelectedPath, ref _nfoFiles);
+      GetNfoFiles(txtImportNfos.Text, ref _nfoFiles);
 
       if (_nfoFiles.Count == 0)
       {
