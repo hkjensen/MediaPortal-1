@@ -340,7 +340,7 @@ internal class Grabber : MarshalByRefObject, IIMDBScriptGrabber
       // Genres
       regexBlockPattern = @"<h4[^>]*>Genre[s]?:[^<]*</h4>(?<genres_block>.+?)</div>";
       regexPattern = @"\s*href=""/[Gg]enre[s]?/.*?>(?<movieGenres>.+?)<";
-      block = Regex.Match(strBody, regexBlockPattern, RegexOptions.Singleline).Value;
+      block = Regex.Match(strBody, regexBlockPattern, RegexOptions.Singleline).Value.Replace("\n", string.Empty);
       MatchCollection mcGenre = Regex.Matches(block, regexPattern);
       string genre = string.Empty;
 
