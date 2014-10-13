@@ -768,5 +768,13 @@ namespace MediaPortal.Video.Database
     {
       _database.RevertFlushTransactionsToDisk();
     }
+
+    public static bool DbHealth
+    {
+      get
+      {
+        return _database.DbHealth;
+      }
+    }
   }
 }

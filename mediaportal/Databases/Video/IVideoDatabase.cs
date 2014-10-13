@@ -178,6 +178,6 @@ namespace MediaPortal.Video.Database
     void GetVideoFiles(string path, ref ArrayList availableFiles);
     void FlushTransactionsToDisk();
     void RevertFlushTransactionsToDisk();
-
+    bool DbHealth { get; }
   }
 }
