@@ -24,18 +24,7 @@
       <width>249</width>
       <height>125</height>
       <texture>#MP.Thumbs\ClearArt\Movies\#Play.Current.IMDBNumber.png</texture>
-      <visible>!control.hasfocus(1237)</visible>
-    </control>
-    <control>
-      <description>Movie ClearArt</description>
-      <type>image</type>
-      <id>9103</id>
-      <posX>949</posX>
-      <posY>150</posY>
-      <width>249</width>
-      <height>125</height>
-      <texture>#MP.Thumbs\ClearArt\Movies\#Play.Current.IMDBNumber.png</texture>
-      <visible>control.hasfocus(1237)</visible>
+      <visible>!string.equals(#Play.Current.IMDBNumber,)</visible>
     </control>
     <control>
       <description>Movie ClearLogo</description>
@@ -46,40 +35,29 @@
       <width>249</width>
       <height>125</height>
       <texture>#MP.Thumbs\ClearLogo\Movies\#Play.Current.IMDBNumber.png</texture>
-      <visible>!control.hasfocus(1237)+!control.hasthumb(9102)</visible>
-    </control>
-    <control>
-      <description>Movie ClearLogo</description>
-      <type>image</type>
-      <id>0</id>
-      <posX>949</posX>
-      <posY>150</posY>
-      <width>249</width>
-      <height>125</height>
-      <texture>#MP.Thumbs\ClearLogo\Movies\#Play.Current.IMDBNumber.png</texture>
-      <visible>control.hasfocus(1237)+!control.hasthumb(9103)</visible>
+      <visible>!control.isVisible(9102)+!string.equals(#Play.Current.IMDBNumber,)</visible>
     </control>
     <control>
       <description>TVSeries ClearArt</description>
+      <type>image</type>
+      <id>9104</id>
+      <posX>949</posX>
+      <posY>349</posY>
+      <width>249</width>
+      <height>125</height>
+      <texture>#TVSeries.Play.ClearArt</texture>
+      <visible>string.equals(#TVSeries.Episode.SeriesName,#Play.Current.Title)</visible>
+    </control>
+    <control>
+      <description>TVSeries ClearLogo</description>
       <type>image</type>
       <id>0</id>
       <posX>949</posX>
       <posY>349</posY>
       <width>249</width>
       <height>125</height>
-      <texture>#TVSeries.Play.ClearArt</texture>
-      <visible>!control.hasfocus(1237)</visible>
-    </control>
-    <control>
-      <description>TVSeries ClearArt</description>
-      <type>image</type>
-      <id>0</id>
-      <posX>949</posX>
-      <posY>150</posY>
-      <width>249</width>
-      <height>125</height>
-      <texture>#TVSeries.Play.ClearArt</texture>
-      <visible>control.hasfocus(1237)</visible>
+      <texture>#TVSeries.Play.ClearLogo</texture>
+      <visible>!control.visible(9104)+string.equals(#TVSeries.Episode.SeriesName,#Play.Current.Title)</visible>
     </control>
     <control>
       <description>Time BG</description>
@@ -195,6 +173,20 @@
       <visible>control.hasfocus(1237)</visible>
       <colordiffuse>ff203661</colordiffuse>
       <animation effect="slide" start="0,50" time="100" reversible="true">visible</animation>
+    </control>
+    <control>
+      <description>Movie CDArt</description>
+      <type>image</type>
+      <id>0</id>
+      <posX>1023</posX>
+      <posY>550</posY>
+      <width>105</width>
+      <height>105</height>
+      <texture>#MP.Thumbs\CDArt\Movies\#Play.Current.IMDBNumber.png</texture>
+      <keepaspectratio>yes</keepaspectratio>
+      <visible>control.hasfocus(1237)</visible>
+      <animation effect="fade" time="100" reversible="true">visible</animation>
+	  <animation effect="rotate" delay="0" end="-360" centre="55,55" time="8000" loop="true" condition="true">Conditional</animation>
     </control>
     <control>
       <description>Plot</description>
