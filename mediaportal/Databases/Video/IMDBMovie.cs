@@ -920,6 +920,22 @@ namespace MediaPortal.Video.Database
               IMDBMovie movieDetails = (IMDBMovie)mList[0];
               mList.Clear();
               rndMovieId = movieDetails.ID;
+              if (Util.Utils.IsFolderDedicatedMovieFolder(path))
+              {
+                VideoDatabase.GetMovieInfoById(rndMovieId,ref info);
+                int percent = 0;
+                int watchedCount = 0;
+                VideoDatabase.GetmovieWatchedStatus(rndMovieId, out percent, out watchedCount);
+                info.WatchedPercent = percent;
+                info.WatchedCount = watchedCount;
+                ArrayList fList = new ArrayList();
+                VideoDatabase.GetFilesForMovie(rndMovieId,ref fList);
+                if (fList.Count > 0)
+                {
+                  VideoDatabase.GetVideoFilesMediaInfo((string)fList[0], ref mInfo, false);
+                  info.VideoFileName = (string)fList[0];
+                }
+              }
             }
             else
             {
