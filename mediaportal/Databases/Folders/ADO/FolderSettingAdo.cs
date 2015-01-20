@@ -20,8 +20,8 @@
 
 using System;
 using System.Data;
-using System.Data.SqlClient;
 using System.IO;
+using System.Linq;
 using System.Collections;
 using System.Xml.Serialization;
 using MediaPortal.Configuration;
@@ -34,26 +34,36 @@ namespace Databases.Folders.SqlServer
 {
   public class FolderSettingAdo : IFolderSettings, IDisposable
   {
-    private SqlConnection _connection;
+    private foldersettingEntities _connection;
 
     public FolderSettingAdo()
     {
-      string connectionString;
+      Log.Info("FolderSettingAdo");
+
+      ConnectDb();
+      CreateTables();
+    }
+
+    private void ConnectDb()
+    {
+      string host;
       using (Settings reader = new MPSettings())
       {
-        connectionString = reader.GetValueAsString("database", "connectionstring",
-                                                   SqlServerUtility.DefaultConnectionString);
+        host = reader.GetValueAsString("tvservice", "hostname", "localhost");
       }
-      _connection = new SqlConnection(connectionString);
-      _connection.Open();
-      CreateTables();
+
+      string ConnectionString = string.Format(
+        "metadata=res://*/Model1.csdl|res://*/Model1.ssdl|res://*/Model1.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id=root;password=MediaPortal;persistsecurityinfo=True;database=foldersetting\"",
+        host);
+
+      Dispose();
+      _connection = new foldersettingEntities(ConnectionString);
     }
 
     public void Dispose()
     {
       if (_connection != null)
       {
-        _connection.Close();
         _connection.Dispose();
         _connection = null;
       }
@@ -61,47 +71,58 @@ namespace Databases.Folders.SqlServer
 
     private void CreateTables()
     {
-      SqlServerUtility.AddTable(_connection, "tblFolderPath",
-                                "CREATE TABLE tblFolderPath ( idPath int IDENTITY(1,1) NOT NULL, strPath varchar(2048))");
-      SqlServerUtility.AddPrimaryKey(_connection, "tblFolderPath", "idPath");
+      if (_connection == null)
+      {
+        return;
+      }
 
-      SqlServerUtility.AddTable(_connection, "tblFolderSetting",
-                                "CREATE TABLE tblFolderSetting ( idSetting int IDENTITY(1,1) NOT NULL, idPath int NOT NULL, tagName varchar(2048), tagValue varchar(2048))");
-      SqlServerUtility.AddPrimaryKey(_connection, "tblFolderSetting", "idSetting");
+      if (!_connection.DatabaseExists())
+      {
+        Log.Error("FolderSetting: database is not exist, createing...");
+        _connection.CreateDatabase();
+       
+        ConnectDb();
+      }
     }
 
     private int AddPath(string filteredPath)
     {
-      if (filteredPath == null)
+      if (string.IsNullOrEmpty(filteredPath))
       {
         return -1;
       }
-      if (filteredPath == string.Empty)
+
+      if (null == _connection)
       {
         return -1;
       }
+
       try
       {
-        string sql = String.Format("select * from tblFolderPath where strPath like '{0}'", filteredPath);
-        using (SqlCommand cmd = _connection.CreateCommand())
+        var query = (from sql in _connection.tblpaths 
+                     where sql.strPath == filteredPath 
+                     select sql).FirstOrDefault();
+        if (query == null)
         {
-          cmd.CommandType = CommandType.Text;
-          cmd.CommandText = sql;
-          using (SqlDataReader reader = cmd.ExecuteReader())
+          // doesnt exists, add it
+          Log.Debug("FolderSetting: AddPath doesnt exists, add it  {0}", filteredPath);
+          tblpath path = new tblpath()
           {
-            if (reader.Read())
-            {
-              int id = (int)reader["idPath"];
-              reader.Close();
-              return id;
-            }
-            else
-            {
-              reader.Close();
-              sql = String.Format("insert into tblFolderPath ( strPath) values (  '{0}' )", filteredPath);
-              return SqlServerUtility.InsertRecord(_connection, sql);
-            }
-          }
+            strPath = filteredPath
+          };
+
+          _connection.tblpaths.AddObject(path);
+          _connection.SaveChanges();
+
+          var query2 = (from u in _connection.tblpaths
+                        where u.idPath == (_connection.tblpaths.Select(u1 => u1.idPath).Max())
+                        select u).FirstOrDefault<tblpath>();
+
+          return query2.idPath;
+        }
+        else
+        {
+          return query.idPath;
         }
       }
       catch (Exception ex)
@@ -113,22 +134,21 @@ namespace Databases.Folders.SqlServer
 
     public void DeleteFolderSetting(string path, string Key)
     {
-      if (path == null)
+      if (null == _connection)
       {
         return;
       }
-      if (path == string.Empty)
+
+      if (string.IsNullOrEmpty(path))
       {
         return;
       }
-      if (Key == null)
+
+      if (string.IsNullOrEmpty(Key))
       {
         return;
       }
-      if (Key == string.Empty)
-      {
-        return;
-      }
+
       try
       {
         string pathFiltered = Utils.RemoveTrailingSlash(path);
@@ -141,9 +161,17 @@ namespace Databases.Folders.SqlServer
         {
           return;
         }
-        string strSQL = String.Format("delete from tblFolderSetting where idPath={0} and tagName ='{1}'", PathId,
-                                      keyFiltered);
-        SqlServerUtility.ExecuteNonQuery(_connection, strSQL);
+
+        var delObj = (from u in _connection.tblsettings
+                     where u.idPath == PathId && u.tagName == keyFiltered
+                      select u).FirstOrDefault();
+
+        if (delObj != null)
+        {
+          _connection.DeleteObject(delObj);
+          _connection.SaveChanges();
+        }
+
       }
       catch (Exception ex)
       {
@@ -153,38 +181,34 @@ namespace Databases.Folders.SqlServer
 
     public void AddFolderSetting(string path, string key, Type type, object Value)
     {
-      if (path == null)
+      Log.Debug("FolderSetting: AddFolderSetting");
+      if (string.IsNullOrEmpty(path))
       {
         return;
       }
-      if (path == string.Empty)
+      if (string.IsNullOrEmpty(key))
       {
         return;
       }
-      if (key == null)
-      {
-        return;
-      }
-      if (key == string.Empty)
+      if (null == _connection)
       {
         return;
       }
 
       try
       {
-        string pathFiltered = Utils.RemoveTrailingSlash(path);
-        string keyFiltered = key;
-        DatabaseUtility.RemoveInvalidChars(ref pathFiltered);
-        DatabaseUtility.RemoveInvalidChars(ref keyFiltered);
+        string strPathFiltered = Utils.RemoveTrailingSlash(path);
+        string KeyFiltered = key;
+        DatabaseUtility.RemoveInvalidChars(ref strPathFiltered);
+        DatabaseUtility.RemoveInvalidChars(ref KeyFiltered);
 
-        int idPath = AddPath(pathFiltered);
-        if (idPath < 0)
+        int PathId = AddPath(strPathFiltered);
+        if (PathId < 0)
         {
           return;
         }
 
         DeleteFolderSetting(path, key);
-
 
         XmlSerializer serializer = new XmlSerializer(type);
         //serialize...
@@ -198,14 +222,19 @@ namespace Databases.Folders.SqlServer
 
             using (TextReader reader = new StreamReader(strm))
             {
-              string valueText = reader.ReadToEnd();
-              string valueFiltered = valueText;
-              DatabaseUtility.RemoveInvalidChars(ref valueFiltered);
+              string ValueText = reader.ReadToEnd();
+              string ValueTextFiltered = ValueText;
+              DatabaseUtility.RemoveInvalidChars(ref ValueTextFiltered);
 
-              string sql =
-                String.Format("insert into tblFolderSetting (idPath, tagName,tagValue) values( {0}, '{1}', '{2}') ",
-                              idPath, keyFiltered, valueFiltered);
-              SqlServerUtility.InsertRecord(_connection, sql);
+              tblsetting obj = new tblsetting()
+              {
+                idPath = PathId,
+                tagName = KeyFiltered,
+                tagValue = ValueTextFiltered
+              };
+
+              _connection.tblsettings.AddObject(obj);
+              _connection.SaveChanges();
             }
           }
         }
@@ -218,89 +247,100 @@ namespace Databases.Folders.SqlServer
 
     public void GetPath(string strPath, ref ArrayList strPathList, string strKey)
     {
-      /*try
+      try
       {
-        if (strKey == string.Empty)
+        if (string.IsNullOrEmpty(strKey))
         {
           return;
         }
-        if (strPath == string.Empty)
+        if (string.IsNullOrEmpty(strPath))
+        {
+          return;
+        }
+        if (null == _connection)
         {
           return;
         }
 
-        string sql = string.Format(
-          "SELECT strPath from tblPath where strPath like '{0}%' and idPath in (SELECT idPath from tblSetting where tblSetting.idPath = tblPath.idPath and tblSetting.tagName = '{1}')"
-          , strPath, strKey);
+        var query = (from u in _connection.tblpaths
+                     join o in _connection.tblsettings
+                     on u.idPath equals o.idPath
+                     where u.strPath.StartsWith(strPath) && o.tagName == strKey
+                     select new { strPath = u.strPath }).ToList();
 
-        SQLiteResultSet results = m_db.Execute(sql);
-
-        if (results.Rows.Count == 0)
+        if (query.Count == 0)
         {
           return;
         }
-        for (int iRow = 0; iRow < results.Rows.Count; iRow++)
+        for (int iRow = 0; iRow < query.Count; iRow++)
         {
-          strPathList.Add(DatabaseUtility.Get(results, iRow, "strPath"));
+          strPathList.Add(query[iRow].strPath);
         }
       }
       catch (Exception ex)
       {
-        Log.Error("Lolderdatabase.GetPath() exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
-      }*/
+        Log.Error("Folderdatabase.GetPath() exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
+      }
     }
 
     public void GetFolderSetting(string path, string key, Type type, out object valueObject)
     {
       valueObject = null;
-      if (path == null)
+
+      if (string.IsNullOrEmpty(path))
       {
         return;
       }
-      if (path == string.Empty)
+      if (string.IsNullOrEmpty(key))
       {
         return;
       }
-      if (key == null)
-      {
-        return;
-      }
-      if (key == string.Empty)
+      if (null == _connection)
       {
         return;
       }
 
       try
       {
-        string pathFiltered = Utils.RemoveTrailingSlash(path);
-        string keyFiltered = key;
-        DatabaseUtility.RemoveInvalidChars(ref pathFiltered);
-        DatabaseUtility.RemoveInvalidChars(ref keyFiltered);
+        string strPathFiltered = Utils.RemoveTrailingSlash(path);
+        string KeyFiltered = key;
+        DatabaseUtility.RemoveInvalidChars(ref strPathFiltered);
+        DatabaseUtility.RemoveInvalidChars(ref KeyFiltered);
 
-        int idPath = AddPath(pathFiltered);
-        if (idPath < 0)
+        int PathId = AddPath(strPathFiltered);
+        if (PathId < 0)
         {
           return;
         }
 
-        string strValue = string.Empty;
-        string sql = String.Format("select * from tblFolderSetting where idPath={0} and tagName like '{1}'", idPath,
-                                   keyFiltered);
-        using (SqlCommand cmd = _connection.CreateCommand())
+        var query = (from sql in _connection.tblsettings
+                     where sql.idPath == PathId && sql.tagName == KeyFiltered
+                     select sql).FirstOrDefault();
+
+        if (query == null)
         {
-          cmd.CommandType = CommandType.Text;
-          cmd.CommandText = sql;
-          using (SqlDataReader reader = cmd.ExecuteReader())
+          int pos = strPathFiltered.LastIndexOf(@"\");
+          if ((strPathFiltered.Substring(1, 1) == ":" && pos > 1) || (strPathFiltered.Substring(0, 1) == "\\" && pos > 5))
           {
-            if (!reader.Read())
-            {
-              reader.Close();
-              return;
-            }
-            strValue = reader["tagValue"].ToString();
-            reader.Close();
+            string folderName;
+            folderName = strPathFiltered.Substring(0, pos);
+
+            Log.Debug("GetFolderSetting: {1} not found, trying the parent {0}", folderName, strPathFiltered);
+            GetFolderSetting(folderName, key, type, out valueObject);
+            return;
           }
+          if (strPathFiltered != "root")
+          {
+            Log.Debug("GetFolderSetting: {0} parent not found. Trying the root.", strPathFiltered);
+            GetFolderSetting("root", key, type, out valueObject);
+            return;
+          }
+          Log.Debug("GetFolderSetting: {0} parent not found. Will use the default share settings.", strPathFiltered);
+          return;
         }
+        string strValue = query.tagValue;
+
+        Log.Debug("GetFolderSetting: {0} found.", strPathFiltered);
         //deserialize...
 
         using (MemoryStream strm = new MemoryStream())
@@ -317,10 +357,11 @@ namespace Databases.Folders.SqlServer
                 XmlSerializer serializer = new XmlSerializer(type);
                 valueObject = serializer.Deserialize(r);
               }
-              catch (Exception) {}
+              catch (Exception) { }
             }
           }
         }
+
       }
       catch (Exception ex)
       {
@@ -330,14 +371,14 @@ namespace Databases.Folders.SqlServer
 
     public string DatabaseName
     {
-      get { return _connection.ConnectionString; }
+      get { return "FolderSetting"; }
     }
 
     public bool DbHealth
     {
       get
       {
-        return true;
+        return _connection.DatabaseExists();
       }
     }
   }

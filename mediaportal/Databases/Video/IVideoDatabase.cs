@@ -27,6 +27,7 @@ namespace MediaPortal.Video.Database
   public interface IVideoDatabase
   {
     void Dispose();
+    bool ClearDB();
     
     // Files & Path
     int AddFile(int lMovieId, int lPathId, string strFileName);
@@ -98,6 +99,11 @@ namespace MediaPortal.Video.Database
     void GetMovieInfoById(int lMovieId, ref IMDBMovie details);
     void SetWatched(IMDBMovie details);
     void SetDateWatched(IMDBMovie details);
+    void GetMoviesByYear(ref ArrayList movies);
+    void SetMovieTitle(string movieTitle, int movieId);
+    void SetMovieShortTitle(string movieTitle, int movieId);
+    void SetIMDBMovies(string sql);
+    void SetIMDBActorId(int actorId, string IMDBActorID);
     
     // Stop time & duration
     void DeleteMovieStopTime(int iFileId);
