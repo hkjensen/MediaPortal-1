@@ -1364,8 +1364,6 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        DatabaseUtility.RemoveInvalidChars(ref rule);
-
         if (_connection == null)
         {
           return;
@@ -1392,8 +1390,6 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        DatabaseUtility.RemoveInvalidChars(ref rule);
-
         if (_connection == null)
         {
           return;
@@ -3298,9 +3294,15 @@ namespace MediaPortal.Video.Database.SqlServer
 
         if (query != null)
         {
-          int watchedCount = (int)query.timeswatched;
+          int watchedCount = 0;
 
-          query.timeswatched = watchedCount++;
+          if (query.timeswatched != null)
+          {
+            watchedCount = (int)query.timeswatched;
+          }
+
+          watchedCount++;
+          query.timeswatched = watchedCount;
           _connection.SaveChanges();
         }
       }
@@ -4420,7 +4422,9 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       movies = new ArrayList();
 
-      sql = sql.Replace("^", "").Trim();
+      //sql = sql.Replace("^", "").Trim();
+      //sql = sql.Replace("ˇ", "").Trim();
+      
       sql = sql.Replace("\\", "\\\\").Trim();
       sql = sql.Replace("RANDOM()", "RAND()").Trim();
 
@@ -4435,6 +4439,47 @@ namespace MediaPortal.Video.Database.SqlServer
 
         if (movieinfoTable)
         {
+          int intFrom = sql.IndexOf("from");
+          if (intFrom <= 0)
+          {
+            intFrom = sql.IndexOf("FROM");
+          }
+
+          if (intFrom > 0)
+          {
+            string partStr = sql.Substring(intFrom, sql.Length - intFrom);
+
+            string movieinfoFields = "select movieinfo.idMovie," +
+                     "movieinfo.idDirector," +
+                     "movieinfo.strDirector," +
+                     "movieinfo.strPlotOutline," +
+                     "movieinfo.strPlot," +
+                     "movieinfo.strTagLine," +
+                     "movieinfo.strVotes," +
+                     "movieinfo.fRating," +
+                     "movieinfo.strCast," +
+                     "movieinfo.strCredits," +
+                     "movieinfo.iYear," +
+                     "movieinfo.strGenre," +
+                     "movieinfo.strPictureURL," +
+                     "movieinfo.strTitle," +
+                     "movieinfo.IMDBID," +
+                     "movieinfo.mpaa," +
+                     "movieinfo.runtime," +
+                     "movieinfo.iswatched," +
+                     "movieinfo.strUserReview," +
+                     "movieinfo.strFanartURL," +
+                     "movieinfo.dateAdded," +
+                     "movieinfo.dateWatched," +
+                     "movieinfo.studios," +
+                     "movieinfo.country," +
+                     "movieinfo.language," +
+                     "movieinfo.lastupdate, " +
+                     "movieinfo.strSortTitle ";
+
+            sql = movieinfoFields + partStr;
+          }
+
           List<Databases.movieinfo> query = _connection.ExecuteStoreQuery<Databases.movieinfo>(sql).ToList();
 
           if (query.Count == 0)
@@ -4457,7 +4502,6 @@ namespace MediaPortal.Video.Database.SqlServer
           for (int i = 0; i < query.Count; i++)
           {
             movie = new IMDBMovie();
-
             if (actorTable && !movieinfoTable)
             {
               movie.Actor = query[i].CNT;
@@ -5175,7 +5219,7 @@ namespace MediaPortal.Video.Database.SqlServer
           return;
         }
         Log.Error("videodatabaseADO:ExecuteSQL {0}", strSql);
-        var query = _connection.ExecuteStoreQuery<string>(strSql);
+        var query = _connection.ExecuteStoreQuery<string>(strSql).FirstOrDefault();
       }
       catch (ThreadAbortException)
       {

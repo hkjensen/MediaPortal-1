@@ -6656,7 +6656,7 @@ namespace MediaPortal.Video.Database
       {
         details.DirectorID = -1;
       }
-      
+
       details.WritingCredits = DatabaseUtility.Get(results, iRow, "movieinfo.strCredits").Replace("''", "'");
       details.TagLine = DatabaseUtility.Get(results, iRow, "movieinfo.strTagLine").Replace("''", "'");
       details.PlotOutline = DatabaseUtility.Get(results, iRow, "movieinfo.strPlotOutline").Replace("''", "'");
@@ -6675,21 +6675,12 @@ namespace MediaPortal.Video.Database
       // Date Watched
       details.DateWatched = DatabaseUtility.Get(results, iRow, "movieinfo.dateWatched");
       details.Title = DatabaseUtility.Get(results, iRow, "movieinfo.strTitle").Replace("''", "'");
-      Int32 lMovieId = Int32.Parse(DatabaseUtility.Get(results, iRow, "movieinfo.idMovie"));
-
-      string strSQL = string.Format("select * from movie where idMovie == {0}", lMovieId);
-      SQLiteResultSet results2 = m_db.Execute(strSQL);
-      details.DVDLabel = DatabaseUtility.Get(results2, 0, "movie.discid");
-      Int32 movieIdPath = Int32.Parse(DatabaseUtility.Get(results2, 0, "movie.idPath"));
-
-      strSQL = string.Format("select * from path where idPath == {0}", movieIdPath);
-      SQLiteResultSet results3 = m_db.Execute(strSQL);
-      details.Path = DatabaseUtility.Get(results3, 0, "path.strPath");
-      details.CDLabel = DatabaseUtility.Get(results3, 0, "path.cdlabel");
-
+      details.Path = DatabaseUtility.Get(results, iRow, "path.strPath");
+      details.DVDLabel = DatabaseUtility.Get(results, iRow, "movie.discid");
       details.IMDBNumber = DatabaseUtility.Get(results, iRow, "movieinfo.IMDBID");
-      
+      Int32 lMovieId = Int32.Parse(DatabaseUtility.Get(results, iRow, "movieinfo.idMovie"));
       details.SearchString = String.Format("{0}", details.Title);
+      details.CDLabel = DatabaseUtility.Get(results, iRow, "path.cdlabel");
       details.MPARating = DatabaseUtility.Get(results, iRow, "movieinfo.mpaa");
       int runtime = 0;
       Int32.TryParse(DatabaseUtility.Get(results, iRow, "movieinfo.runtime"), out runtime);
@@ -6706,7 +6697,7 @@ namespace MediaPortal.Video.Database
 
       if (string.IsNullOrEmpty(details.Path) && details.ID > 0)
       {
-        strSQL = String.Format(
+        string strSQL = String.Format(
           "SELECT path.strPath FROM movie,path WHERE path.idpath=movie.idpath AND movie.idMovie = {0}", details.ID);
         results = m_db.Execute(strSQL);
         details.Path = DatabaseUtility.Get(results, 0, "path.strPath");
@@ -6729,7 +6720,7 @@ namespace MediaPortal.Video.Database
 
         if (files.Count > 0)
         {
-          movieFilename = (string) files[0];
+          movieFilename = (string)files[0];
         }
 
         details.VideoFileName = movieFilename;
