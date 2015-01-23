@@ -52,7 +52,15 @@ namespace MediaPortal.Database
 
     public static IPictureDatabase GetPictureDatabase()
     {
-      if (false)
+      bool PictureDBUseADO = false;
+
+      using (Profile.Settings xmlreader = new MPSettings())
+      {
+        PictureDBUseADO = xmlreader.GetValueAsBool("picturedatabase", "UseADO", false);
+      }
+      Log.Debug("DatabaseFactory PictureDBUseADO: {0}", PictureDBUseADO);
+
+      if (PictureDBUseADO)
       {
         return new PictureDatabaseADO();
       }
