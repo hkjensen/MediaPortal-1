@@ -418,7 +418,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (null == _connection)
+        if (null == _connection || string.IsNullOrEmpty(strPath))
         {
           return -1;
         }
