@@ -43,6 +43,7 @@ namespace MediaPortal.Picture.Database
     private bool _useExif = true;
     private bool _usePicasa = false;
     private Databases.picturedatabaseEntities _connection;
+    private bool _dbHealth = false;
 
     public PictureDatabaseADO()
     {
@@ -55,22 +56,30 @@ namespace MediaPortal.Picture.Database
     [MethodImpl(MethodImplOptions.Synchronized)]
     private void ConnectDb()
     {
-      if (_connection != null)
+      try
       {
-        return;
-      }
+        if (_connection != null)
+        {
+          return;
+        }
       
-      string host;
-      using (Settings reader = new MPSettings())
-      {
-        host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+        string host;
+        using (Settings reader = new MPSettings())
+        {
+          host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+        }
+
+        string ConnectionString = string.Format(
+          "metadata=res://*/Model3.csdl|res://*/Model3.ssdl|res://*/Model3.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id=root;password=MediaPortal;persistsecurityinfo=True;database=picturedatabase;Convert Zero Datetime=True\"",
+          host);
+
+         _connection = new Databases.picturedatabaseEntities(ConnectionString);
+         _dbHealth = true;
       }
-
-      string ConnectionString = string.Format(
-        "metadata=res://*/Model3.csdl|res://*/Model3.ssdl|res://*/Model3.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id=root;password=MediaPortal;persistsecurityinfo=True;database=picturedatabase;Convert Zero Datetime=True\"",
-        host);
-
-       _connection = new Databases.picturedatabaseEntities(ConnectionString);
+      catch (Exception ex)
+      {
+        Log.Error("PicturedatabaseADO:ConnectDb exception err:{0} stack:{1} {2}", ex.Message, ex.StackTrace, ex.InnerException);
+      }
     }
 
     [MethodImpl(MethodImplOptions.Synchronized)]
@@ -89,6 +98,7 @@ namespace MediaPortal.Picture.Database
           
           _connection.CreateDatabase();
         }
+        _dbHealth = true;
       }
       catch (Exception ex)
       {
@@ -612,7 +622,7 @@ namespace MediaPortal.Picture.Database
     {
       get
       {
-        return true;
+        return _dbHealth;
       }
     }
 

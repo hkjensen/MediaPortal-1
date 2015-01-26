@@ -47,6 +47,7 @@ namespace MediaPortal.Video.Database.SqlServer
   {
     private bool _currentCreateVideoThumbs;
     private Databases.videodatabaseEntities _connection;
+    private bool _dbHealth = false;
 
     class custom1
     {
@@ -69,22 +70,29 @@ namespace MediaPortal.Video.Database.SqlServer
 
     private void ConnectDb()
     {
-      if (_connection != null)
+      try
       {
-        return;
-      }
+        if (_connection != null)
+        {
+          return;
+        }
       
-      string host;
-      using (Settings reader = new MPSettings())
-      {
-        host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+        string host;
+        using (Settings reader = new MPSettings())
+        {
+          host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+        }
+
+        string ConnectionString = string.Format(
+          "metadata=res://*/Model2.csdl|res://*/Model2.ssdl|res://*/Model2.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id=root;password=MediaPortal;persistsecurityinfo=True;database=videodatabase;Convert Zero Datetime=True\"",
+          host);
+
+         _connection = new Databases.videodatabaseEntities(ConnectionString);
       }
-
-      string ConnectionString = string.Format(
-        "metadata=res://*/Model2.csdl|res://*/Model2.ssdl|res://*/Model2.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id=root;password=MediaPortal;persistsecurityinfo=True;database=videodatabase;Convert Zero Datetime=True\"",
-        host);
-
-       _connection = new Databases.videodatabaseEntities(ConnectionString);
+      catch (Exception ex)
+      {
+        Log.Error("VideodatabaseADO:ConnectDb exception err:{0} stack:{1} {2}", ex.Message, ex.StackTrace, ex.InnerException);
+      }
     }
 
     private void CreateDb()
@@ -130,6 +138,7 @@ namespace MediaPortal.Video.Database.SqlServer
           _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxmovieinfo_idMovie ON movieinfo(idMovie ASC)");
           _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxactors_idActor ON actors(idActor ASC)");
         }
+        _dbHealth = true;
       }
       catch (Exception ex)
       {
@@ -7147,7 +7156,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       get
       {
-        return _connection.DatabaseExists();
+        return _dbHealth;
       }
     }
 

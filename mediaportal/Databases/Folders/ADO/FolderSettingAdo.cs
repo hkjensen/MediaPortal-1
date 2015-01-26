@@ -35,6 +35,7 @@ namespace Databases.Folders.SqlServer
   public class FolderSettingAdo : IFolderSettings, IDisposable
   {
     private foldersettingEntities _connection;
+    private bool _dbHealth = false;
 
     public FolderSettingAdo()
     {
@@ -46,18 +47,28 @@ namespace Databases.Folders.SqlServer
 
     private void ConnectDb()
     {
-      string host;
-      using (Settings reader = new MPSettings())
+      try
       {
-        host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+        if (_connection != null)
+        {
+          return;
+        }
+        string host;
+        using (Settings reader = new MPSettings())
+        {
+          host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+        }
+
+        string ConnectionString = string.Format(
+          "metadata=res://*/Model1.csdl|res://*/Model1.ssdl|res://*/Model1.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id=root;password=MediaPortal;persistsecurityinfo=True;database=foldersetting\"",
+          host);
+
+        _connection = new foldersettingEntities(ConnectionString);
       }
-
-      string ConnectionString = string.Format(
-        "metadata=res://*/Model1.csdl|res://*/Model1.ssdl|res://*/Model1.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id=root;password=MediaPortal;persistsecurityinfo=True;database=foldersetting\"",
-        host);
-
-      Dispose();
-      _connection = new foldersettingEntities(ConnectionString);
+      catch (Exception ex)
+      {
+        Log.Error("FolderdatabaseADO:ConnectDb exception err:{0} stack:{1} {2}", ex.Message, ex.StackTrace, ex.InnerException);
+      }
     }
 
     public void Dispose()
@@ -76,12 +87,20 @@ namespace Databases.Folders.SqlServer
         return;
       }
 
-      if (!_connection.DatabaseExists())
+      try
       {
-        Log.Error("FolderSetting: database is not exist, createing...");
-        _connection.CreateDatabase();
+        if (!_connection.DatabaseExists())
+        {
+          Log.Error("FolderSetting: database is not exist, createing...");
+          _connection.CreateDatabase();
        
-        ConnectDb();
+          ConnectDb();
+        }
+        _dbHealth = true;
+      }
+      catch (Exception ex)
+      {
+        Log.Error("PicturedatabaseADO:CreateDb exception err:{0} stack:{1} {2}", ex.Message, ex.StackTrace, ex.InnerException);
       }
     }
 
@@ -371,14 +390,21 @@ namespace Databases.Folders.SqlServer
 
     public string DatabaseName
     {
-      get { return "FolderSetting"; }
+      get 
+      { 
+        if (_connection != null)
+        {
+          return "FolderSettings";
+        }
+        return "";
+      }
     }
 
     public bool DbHealth
     {
       get
       {
-        return _connection.DatabaseExists();
+        return _dbHealth;
       }
     }
   }
