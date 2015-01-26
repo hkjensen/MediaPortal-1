@@ -1708,6 +1708,7 @@ namespace MediaPortal.Video.Database
     {
       try
       {
+        GUIPropertyManager.SetProperty("#isfolder", item.IsFolder.ToString());
         IMDBMovie info = item.AlbumInfoTag as IMDBMovie;
 
         if (info == null)
@@ -1844,7 +1845,6 @@ namespace MediaPortal.Video.Database
         GUIPropertyManager.SetProperty("#HasSubtitles", hasSubtitles);
         GUIPropertyManager.SetProperty("#AspectRatio", info.MediaInfo.AspectRatio);
         GUIPropertyManager.SetProperty("#myvideosuserfanart", info.UserFanart);
-
         
       }
       catch (Exception ex)
