@@ -289,7 +289,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
         var query = (from sql in _connection.files
                       where sql.idPath == lPathId2 && sql.strFilename == strFileName
-                      select sql).FirstOrDefault<Databases.file>();
+                      select sql).FirstOrDefault();
 
         if (query != null)
         {
@@ -404,9 +404,9 @@ namespace MediaPortal.Video.Database.SqlServer
           _connection.paths.AddObject(path);
           _connection.SaveChanges();
 
-          var query2 = (from u in _connection.paths
-                        where u.idPath == (_connection.paths.Select(u1 => u1.idPath).Max())
-                        select u).FirstOrDefault();
+          var query2 = (from sql in _connection.paths
+                       where sql.strPath == strPath && sql.cdlabel == cdlabel
+                       select sql).FirstOrDefault();
 
           return query2.idPath;
         }
@@ -1064,9 +1064,9 @@ namespace MediaPortal.Video.Database.SqlServer
           _connection.genres.AddObject(ins);
           _connection.SaveChanges();
 
-          var query2 = (from u in _connection.genres
-                        where u.idGenre == (_connection.genres.Select(u1 => u1.idGenre).Max())
-                        select u).FirstOrDefault();
+          var query2 = (from sql in _connection.genres
+                       where sql.strGenre == strGenre
+                       select sql).FirstOrDefault();
 
           return query2.idGenre;
         }
@@ -1280,9 +1280,9 @@ namespace MediaPortal.Video.Database.SqlServer
           _connection.usergroups.AddObject(obj);
           _connection.SaveChanges();
 
-          var query2 = (from u in _connection.usergroups
-                        where u.idGroup == (_connection.usergroups.Select(u1 => u1.idGroup).Max())
-                        select u).FirstOrDefault();
+          var query2 = (from sql in _connection.usergroups
+                       where sql.strGroup == strUserGroup
+                       select sql).FirstOrDefault();
 
           return query2.idGroup;
         }
@@ -5091,9 +5091,9 @@ namespace MediaPortal.Video.Database.SqlServer
           _connection.videothumbblists.AddObject(obj);
           _connection.SaveChanges();
 
-          var query2 = (from u in _connection.videothumbblists
-                        where u.idVideoThumbBList == (_connection.videothumbblists.Select(u1 => u1.idVideoThumbBList).Max())
-                        select u).FirstOrDefault();
+          var query2 = (from sql in _connection.videothumbblists
+                       where sql.strPath == path
+                       select sql).FirstOrDefault();
 
           int id = query2.idVideoThumbBList;
 

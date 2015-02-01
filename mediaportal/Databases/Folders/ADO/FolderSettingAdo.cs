@@ -133,9 +133,9 @@ namespace Databases.Folders.SqlServer
           _connection.tblpaths.AddObject(path);
           _connection.SaveChanges();
 
-          var query2 = (from u in _connection.tblpaths
-                        where u.idPath == (_connection.tblpaths.Select(u1 => u1.idPath).Max())
-                        select u).FirstOrDefault<tblpath>();
+          var query2 = (from sql in _connection.tblpaths
+                       where sql.strPath == filteredPath
+                       select sql).FirstOrDefault();
 
           return query2.idPath;
         }
