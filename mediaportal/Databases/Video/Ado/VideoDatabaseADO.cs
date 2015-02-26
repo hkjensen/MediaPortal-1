@@ -78,14 +78,23 @@ namespace MediaPortal.Video.Database.SqlServer
         }
       
         string host;
+        string userName;
+        string password;
         using (Settings reader = new MPSettings())
         {
-          host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+          host = reader.GetValueAsString("mpdatabase", "hostname", string.Empty);
+          userName = reader.GetValueAsString("mpdatabase", "username", "root");
+          password = reader.GetValueAsString("mpdatabase", "password", "MediaPortal");
+
+          if (host == string.Empty)
+          {
+            host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+          }
         }
 
         string ConnectionString = string.Format(
-          "metadata=res://*/Model2.csdl|res://*/Model2.ssdl|res://*/Model2.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id=root;password=MediaPortal;persistsecurityinfo=True;database=videodatabase;Convert Zero Datetime=True\"",
-          host);
+          "metadata=res://*/Model2.csdl|res://*/Model2.ssdl|res://*/Model2.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id={1};password={2};persistsecurityinfo=True;database=videodatabase;Convert Zero Datetime=True\"",
+          host, userName, password);
 
          _connection = new Databases.videodatabaseEntities(ConnectionString);
       }
