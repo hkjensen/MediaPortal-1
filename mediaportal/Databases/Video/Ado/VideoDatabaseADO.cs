@@ -138,14 +138,14 @@ namespace MediaPortal.Video.Database.SqlServer
           _connection.ExecuteStoreCommand("CREATE INDEX idxactorlinkmovie_idMovie ON actorlinkmovie(idMovie ASC)");
           _connection.ExecuteStoreCommand("CREATE INDEX idxactorlinkmovie_idActor ON actorlinkmovie(idActor ASC)");
           _connection.ExecuteStoreCommand("CREATE INDEX idxactorinfomovies_idActor ON actorinfomovies(idActor ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxactorinfo_idActor ON actorinfo(idActor ASC)");
+          //_connection.ExecuteStoreCommand("CREATE INDEX idxactorinfo_idActor ON actorinfo(idActor ASC)");
           _connection.ExecuteStoreCommand("CREATE INDEX idxVideoThumbBList_strPath ON VideoThumbBList(strPath(500) ASC, strExpires ASC)");
           _connection.ExecuteStoreCommand("CREATE INDEX idxVideoThumbBList_strExpires ON VideoThumbBList(strExpires ASC)");
           _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idximdbmovies_idIMDB ON IMDBmovies (idIMDB(500) ASC)");
           _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxduration_idFile ON duration (idFile ASC)");
           _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxfilesmediainfo_idFile ON filesmediainfo (idFile ASC)");
           _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxmovieinfo_idMovie ON movieinfo(idMovie ASC)");
-          _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxactors_idActor ON actors(idActor ASC)");
+          //_connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxactors_idActor ON actors(idActor ASC)");
         }
         _dbHealth = true;
       }
@@ -4439,9 +4439,6 @@ namespace MediaPortal.Video.Database.SqlServer
                                   bool genreTable, bool usergroupTable)
     {
       movies = new ArrayList();
-
-      //sql = sql.Replace("^", "").Trim();
-      //sql = sql.Replace("ˇ", "").Trim();
       
       sql = sql.Replace("\\", "\\\\").Trim();
       sql = sql.Replace("RANDOM()", "RAND()").Trim();
