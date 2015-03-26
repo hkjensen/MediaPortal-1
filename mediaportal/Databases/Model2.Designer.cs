@@ -68,6 +68,22 @@ namespace Databases
         /// <summary>
         /// No Metadata Documentation available.
         /// </summary>
+        public ObjectSet<actorinfo> actorinfoes
+        {
+            get
+            {
+                if ((_actorinfoes == null))
+                {
+                    _actorinfoes = base.CreateObjectSet<actorinfo>("actorinfoes");
+                }
+                return _actorinfoes;
+            }
+        }
+        private ObjectSet<actorinfo> _actorinfoes;
+    
+        /// <summary>
+        /// No Metadata Documentation available.
+        /// </summary>
         public ObjectSet<actorinfomovy> actorinfomovies
         {
             get
@@ -336,26 +352,18 @@ namespace Databases
             }
         }
         private ObjectSet<videothumbblist> _videothumbblists;
-    
-        /// <summary>
-        /// No Metadata Documentation available.
-        /// </summary>
-        public ObjectSet<actorinfo> actorinfoes
-        {
-            get
-            {
-                if ((_actorinfoes == null))
-                {
-                    _actorinfoes = base.CreateObjectSet<actorinfo>("actorinfoes");
-                }
-                return _actorinfoes;
-            }
-        }
-        private ObjectSet<actorinfo> _actorinfoes;
 
         #endregion
 
         #region AddTo Methods
+    
+        /// <summary>
+        /// Deprecated Method for adding a new object to the actorinfoes EntitySet. Consider using the .Add method of the associated ObjectSet&lt;T&gt; property instead.
+        /// </summary>
+        public void AddToactorinfoes(actorinfo actorinfo)
+        {
+            base.AddObject("actorinfoes", actorinfo);
+        }
     
         /// <summary>
         /// Deprecated Method for adding a new object to the actorinfomovies EntitySet. Consider using the .Add method of the associated ObjectSet&lt;T&gt; property instead.
@@ -491,14 +499,6 @@ namespace Databases
         public void AddTovideothumbblists(videothumbblist videothumbblist)
         {
             base.AddObject("videothumbblists", videothumbblist);
-        }
-    
-        /// <summary>
-        /// Deprecated Method for adding a new object to the actorinfoes EntitySet. Consider using the .Add method of the associated ObjectSet&lt;T&gt; property instead.
-        /// </summary>
-        public void AddToactorinfoes(actorinfo actorinfo)
-        {
-            base.AddObject("actorinfoes", actorinfo);
         }
 
         #endregion

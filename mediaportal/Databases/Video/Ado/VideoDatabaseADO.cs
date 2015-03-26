@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Xml;
 using System.Management;
@@ -48,6 +49,7 @@ namespace MediaPortal.Video.Database.SqlServer
     private bool _currentCreateVideoThumbs;
     private Databases.videodatabaseEntities _connection;
     private bool _dbHealth = false;
+    private string _connectionString;
 
     class custom1
     {
@@ -59,25 +61,50 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public VideoDatabaseADO()
     {
-      Log.Info("VideoDatabaseADO");
-
       ConnectDb();
-      CreateDb();
-      SetLatestMovieProperties();
+
+      Thread threadCreateDb = new Thread(CreateDb);
+      threadCreateDb.Priority = ThreadPriority.Lowest;
+      threadCreateDb.IsBackground = true;
+      threadCreateDb.Name = "CreateVideoDBThread";
+      threadCreateDb.Start();
     }
 
     #endregion
+
+    private bool WaitForConnected()
+    {
+      for (int i = 1; i < 30; i++)
+      {
+        try
+        {
+          if (_connection == null)
+            return false;
+
+          _connection.DatabaseExists();
+          return true;
+        }
+        catch (Exception ex)
+        {
+          if (i < 29)
+          {
+            Log.Debug("VideodatabaseADO:WaitForConnected trying to connect to the database. {0} sec", i);
+          }
+          else
+          {
+            Log.Error("VideodatabaseADO:WaitForConnected exception err:{0} stack:{1} {2}", ex.Message, ex.StackTrace, ex.InnerException);
+          }
+        }
+        Thread.Sleep(500);
+      }
+      return false;
+    }
 
     private void ConnectDb()
     {
       try
       {
-        if (_connection != null)
-        {
-          return;
-        }
-      
-        string host;
+        string host = string.Empty;
         string userName;
         string password;
         using (Settings reader = new MPSettings())
@@ -93,10 +120,11 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         string ConnectionString = string.Format(
-          "metadata=res://*/Model2.csdl|res://*/Model2.ssdl|res://*/Model2.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id={1};password={2};persistsecurityinfo=True;database=videodatabase;Convert Zero Datetime=True\"",
+          "metadata=res://*/Model2.csdl|res://*/Model2.ssdl|res://*/Model2.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id={1};password={2};persistsecurityinfo=True;database=videodatabase;Convert Zero Datetime=True;charset=utf8\"",
           host, userName, password);
 
-         _connection = new Databases.videodatabaseEntities(ConnectionString);
+        _connection = new Databases.videodatabaseEntities(ConnectionString);
+        _connectionString = string.Format("server={0};user id={1};password={2}", host, userName, password);
       }
       catch (Exception ex)
       {
@@ -104,50 +132,64 @@ namespace MediaPortal.Video.Database.SqlServer
       }
     }
 
-    private void CreateDb()
+    public bool IsConnected()
     {
       if (_connection == null)
       {
-        return;
+        return false;
       }
+      else
+        if (_dbHealth)
+        {
+          return true;
+        }
+        else
+        {
+          CreateDb();
+          return _dbHealth;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.Synchronized)]
+    private void CreateDb()
+    {
+      if (_connection == null)
+        return;
+      
+      string host;
+      using (Settings reader = new MPSettings())
+      {
+        host = reader.GetValueAsString("mpdatabase", "hostname", string.Empty);
+
+        if (host == string.Empty)
+        {
+          host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+        }
+      }
+
+      if (!WakeupUtil.HandleWakeUpServer(host))
+      {
+        Log.Error("VideoDatabaseADO: database host is not connected.");
+      }
+
+      WaitForConnected();
 
       try
       {
         if (!_connection.DatabaseExists())
         {
           Log.Debug("VideoDatabaseADO: database is not exist, createing...");
-          
-          _connection.CreateDatabase();
+          System.Reflection.Assembly assembly = this.GetType().Assembly;
 
-          _connection.ExecuteStoreCommand("CREATE INDEX idxactors_idIMDB ON actors(IMDBActorID(500) ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxusergrouplinkmovie_idMovie ON usergrouplinkmovie (idMovie ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxusergrouplinkmovie_idGroup ON usergrouplinkmovie (idGroup ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxuserGroup_strGroup ON usergroup (strGroup(500) ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxpath_strPath ON path(strPath(500) ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxpath_idPath ON path(idPath ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxmovieinfo_strTitle ON movieinfo(strTitle(500) ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxmovieinfo_idIMDB ON movieinfo(IMDBID(500) ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxmovieinfo_idDirector ON movieinfo(idDirector ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxmovieinfo_iYear ON movieinfo(iYear ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxmovie_idPath ON movie(idPath ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxgenrelinkmovie_idMovie ON genrelinkmovie(idMovie ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxgenrelinkmovie_idGenre ON genrelinkmovie(idGenre ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxfiles_idPath ON files(idPath ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxfiles_idMovie ON files(idMovie ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxactors_strActor ON actors(strActor(500) ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxactorlinkmovie_idMovie ON actorlinkmovie(idMovie ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxactorlinkmovie_idActor ON actorlinkmovie(idActor ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxactorinfomovies_idActor ON actorinfomovies(idActor ASC)");
-          //_connection.ExecuteStoreCommand("CREATE INDEX idxactorinfo_idActor ON actorinfo(idActor ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxVideoThumbBList_strPath ON VideoThumbBList(strPath(500) ASC, strExpires ASC)");
-          _connection.ExecuteStoreCommand("CREATE INDEX idxVideoThumbBList_strExpires ON VideoThumbBList(strExpires ASC)");
-          _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idximdbmovies_idIMDB ON IMDBmovies (idIMDB(500) ASC)");
-          _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxduration_idFile ON duration (idFile ASC)");
-          _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxfilesmediainfo_idFile ON filesmediainfo (idFile ASC)");
-          _connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxmovieinfo_idMovie ON movieinfo(idMovie ASC)");
-          //_connection.ExecuteStoreCommand("CREATE UNIQUE INDEX idxactors_idActor ON actors(idActor ASC)");
+          string DatabaseName = assembly.GetName().Name + ".Video.Ado.create_videodatabase.sql";
+          _dbHealth = DatabaseUtility.CreateDb(_connectionString, DatabaseName);
         }
-        _dbHealth = true;
+        else
+        {
+          _dbHealth = true;
+          Log.Debug("VideoDatabaseADO: database is connected.");
+        }
+        SetLatestMovieProperties();
       }
       catch (Exception ex)
       {
@@ -157,7 +199,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public bool ClearDB()
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return false;
       }
@@ -191,7 +233,9 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       Log.Debug("VideodatabaseADO AddFile:{0}", strFileName);
 
-      if (null == _connection)
+      strFileName = strFileName.Replace("\\", "\\\\").Trim();
+
+      if (!IsConnected())
       {
         return -1;
       }
@@ -200,9 +244,14 @@ namespace MediaPortal.Video.Database.SqlServer
         int lFileId = -1;
         strFileName = strFileName.Trim();
 
-        var query = (from sql in _connection.files
-                      where sql.idMovie == lMovieId && sql.idPath == lPathId && sql.strFilename == strFileName
-                      select sql).FirstOrDefault();
+        /*var query = (from sql in _connection.files
+                     where sql.idMovie == lMovieId && sql.idPath == lPathId && sql.strFilename == strFileName
+                     select sql).FirstOrDefault();*/
+
+        string strSQL = String.Format("SELECT * FROM files WHERE idmovie={0} AND idpath={1} AND strFileName = '{2}'",
+                                lMovieId, lPathId, strFileName);
+
+        var query = _connection.ExecuteStoreQuery<Databases.file>(strSQL).FirstOrDefault();
 
         if (query != null)
         {
@@ -211,7 +260,7 @@ namespace MediaPortal.Video.Database.SqlServer
           return lFileId;
         }
 
-        Databases.file obj = new Databases.file()
+        /*Databases.file obj = new Databases.file()
         {
           strFilename = strFileName,
           idMovie = lMovieId,
@@ -223,7 +272,14 @@ namespace MediaPortal.Video.Database.SqlServer
 
         var query2 = (from sql in _connection.files
                       where sql.idMovie == lMovieId && sql.idPath == lPathId && sql.strFilename == strFileName
-                      select sql).FirstOrDefault();
+                      select sql).FirstOrDefault();*/
+
+        string strInsertSQL = String.Format("INSERT INTO files (idFile, idMovie,idPath, strFileName) VALUES(null, {0},{1},'{2}')",
+                       lMovieId, lPathId, strFileName);
+
+        _connection.ExecuteStoreCommand(strInsertSQL);
+
+        var query2 = _connection.ExecuteStoreQuery<Databases.file>(strSQL).FirstOrDefault();
 
         lFileId = query2.idFile;
 
@@ -262,7 +318,7 @@ namespace MediaPortal.Video.Database.SqlServer
       {
         // Will be logged in thread main code
       }
-      catch (Exception ex) 
+      catch (Exception ex)
       {
         Log.Error("VideodatabaseADO:MovieDuration exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
       }
@@ -277,7 +333,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        if (null == _connection)
+        if (!IsConnected())
         {
           return -1;
         }
@@ -288,22 +344,24 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref strPath);
         RemoveInvalidChars(ref strFileName);
         lPathId = GetPath(strPath);
-
+        strFileName = strFileName.Replace("\\", "\\\\").Trim();
         if (lPathId < 0)
         {
           return -1;
         }
 
         int lPathId2 = lPathId;
+        string strSQL = String.Format("SELECT * FROM files WHERE idPath={0} AND strFilename = '{1}'", lPathId, strFileName);
 
-        var query = (from sql in _connection.files
+        /*var query = (from sql in _connection.files
                       where sql.idPath == lPathId2 && sql.strFilename == strFileName
-                      select sql).FirstOrDefault();
+                      select sql).FirstOrDefault();*/
+
+        var query = _connection.ExecuteStoreQuery<Databases.file>(strSQL).FirstOrDefault();
 
         if (query != null)
         {
           lMovieId = (int)query.idMovie;
-
           return query.idFile;
         }
       }
@@ -323,11 +381,20 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       resumeData = null;
 
+      if (!IsConnected())
+      {
+        return 0;
+      }
+
       try
       {
-        var query = (from sql in _connection.resumes
+        /*var query = (from sql in _connection.resumes
                      where sql.idFile == iFileId
-                     select sql).FirstOrDefault<Databases.resume>();
+                     select sql).FirstOrDefault<Databases.resume>();*/
+
+        string strSQL = String.Format("SELECT * FROM resume WHERE idFile={0}", iFileId);// bdtitle);
+
+        var query = _connection.ExecuteStoreQuery<Databases.resume>(strSQL).FirstOrDefault();
 
         if (query != null)
         {
@@ -344,6 +411,11 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public int AddMovieFile(string strFile)
     {
+      if (!IsConnected())
+      {
+        return -1;
+      }
+      
       bool bHassubtitles = false;
 
       if (strFile.ToLowerInvariant().IndexOf(".ifo") >= 0)
@@ -387,35 +459,45 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (null == _connection)
+        if (!IsConnected())
         {
           return -1;
         }
 
         string cdlabel = GetDVDLabel(strPath);
         RemoveInvalidChars(ref cdlabel);
-        strPath = strPath.Trim();
+        strPath = strPath.Replace("\\", "\\\\").Trim();
 
-        var query = (from sql in _connection.paths
+        /*var query = (from sql in _connection.paths
                      where sql.strPath == strPath && sql.cdlabel == cdlabel
-                     select sql).FirstOrDefault();
+                     select sql).FirstOrDefault();*/
+
+        string strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}' AND cdlabel like '{1}'", strPath,
+                              cdlabel);
+
+        var query = _connection.ExecuteStoreQuery<Databases.path>(strSQL).FirstOrDefault();
 
         if (query == null)
         {
-          Log.Debug("VideodatabaseADO: AddPath doesnt exists, add it  {0}", strPath);
-
-          Databases.path path = new Databases.path()
+          /*Databases.path path = new Databases.path()
           {
             strPath = strPath,
             cdlabel = cdlabel
           };
 
           _connection.paths.AddObject(path);
-          _connection.SaveChanges();
+          _connection.SaveChanges();*/
 
-          var query2 = (from sql in _connection.paths
-                       where sql.strPath == strPath && sql.cdlabel == cdlabel
-                       select sql).FirstOrDefault();
+          string strInsertSQL = String.Format("INSERT INTO Path (strPath, cdlabel) VALUES('{0}', '{1}')", strPath,
+                       cdlabel);
+
+          _connection.ExecuteStoreCommand(strInsertSQL);
+
+          /*var query2 = (from sql in _connection.paths
+                        where sql.strPath == strPath && sql.cdlabel == cdlabel
+                        select sql).FirstOrDefault();*/
+
+          var query2 = _connection.ExecuteStoreQuery<Databases.path>(strSQL).FirstOrDefault();
 
           return query2.idPath;
         }
@@ -436,14 +518,14 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (null == _connection || string.IsNullOrEmpty(strPath))
+        if (!IsConnected() || string.IsNullOrEmpty(strPath))
         {
           return -1;
         }
 
         string cdlabel = string.Empty;
         string strSQL = string.Empty;
-        strPath = strPath.Trim();
+        strPath = strPath.Replace("\\", "\\\\").Trim();
 
         if (Util.Utils.IsDVD(strPath))
         {
@@ -452,22 +534,21 @@ namespace MediaPortal.Video.Database.SqlServer
           RemoveInvalidChars(ref cdlabel);
           strPath = strPath.Replace(strPath.Substring(0, 1), "_");
 
-          var query = (from sql in _connection.paths
-                        where sql.strPath == strPath && sql.cdlabel == cdlabel
-                        select sql).FirstOrDefault();
+          /*var query = (from sql in _connection.paths
+                       where sql.strPath == strPath && sql.cdlabel == cdlabel
+                       select sql).FirstOrDefault();*/
 
-          if (query != null)
-            return query.idPath;
+          strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}' AND cdlabel LIKE '{1}'", strPath, cdlabel);
         }
         else
         {
-          var query = (from sql in _connection.paths
-                        where sql.strPath == strPath
-                        select sql).FirstOrDefault();
-
-          if (query != null)
-            return query.idPath;
+          strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}'", strPath);
         }
+
+        var query = _connection.ExecuteStoreQuery<Databases.path>(strSQL).FirstOrDefault();
+
+        if (query != null)
+          return query.idPath;
       }
       catch (ThreadAbortException)
       {
@@ -483,52 +564,24 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void DeleteFile(int iFileId)
     {
-      if (null == _connection)
+      if (!IsConnected())
       {
         return;
       }
-      
+
       try
       {
-        var delObj = (from u in _connection.files
-                      where u.idFile == iFileId
-                      select u).FirstOrDefault();
+        string strSQL = String.Format("DELETE FROM files WHERE idfile={0}", iFileId);
+        _connection.ExecuteStoreCommand(strSQL);
 
-        if (delObj != null)
-        {
-          _connection.DeleteObject(delObj);
-          _connection.SaveChanges();
-        }
+        strSQL = String.Format("DELETE FROM resume WHERE idfile={0}", iFileId);
+        _connection.ExecuteStoreCommand(strSQL);
 
-        var delObj2 = (from u in _connection.resumes
-                      where u.idFile == iFileId
-                      select u).FirstOrDefault();
+        strSQL = String.Format("DELETE FROM duration WHERE idfile={0}", iFileId);
+        _connection.ExecuteStoreCommand(strSQL);
 
-        if (delObj2 != null)
-        {
-          _connection.DeleteObject(delObj2);
-          _connection.SaveChanges();
-        }
-
-        var delObj3 = (from u in _connection.durations
-                       where u.idFile == iFileId
-                       select u).FirstOrDefault();
-
-        if (delObj3 != null)
-        {
-          _connection.DeleteObject(delObj3);
-          _connection.SaveChanges();
-        }
-
-        var delObj4 = (from u in _connection.filesmediainfoes
-                       where u.idFile == iFileId
-                       select u).FirstOrDefault();
-
-        if (delObj4 != null)
-        {
-          _connection.DeleteObject(delObj4);
-          _connection.SaveChanges();
-        }
+        strSQL = String.Format("DELETE FROM filesmediainfo WHERE idfile={0}", iFileId);
+        _connection.ExecuteStoreCommand(strSQL);
       }
       catch (Exception ex)
       {
@@ -540,7 +593,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (null == _connection)
+        if (!IsConnected())
         {
           return;
         }
@@ -554,46 +607,18 @@ namespace MediaPortal.Video.Database.SqlServer
         {
           int idFile = GetFileId(file);
 
-          var delObj = (from u in _connection.resumes
-                        where u.idFile == idFile
-                        select u).FirstOrDefault();
+          strSQL = String.Format("DELETE FROM resume WHERE idfile={0}", idFile);
+          _connection.ExecuteStoreCommand(strSQL);
 
-          if (delObj != null)
-          {
-            _connection.DeleteObject(delObj);
-            _connection.SaveChanges();
-          }
+          strSQL = String.Format("DELETE FROM duration WHERE idfile={0}", idFile);
+          _connection.ExecuteStoreCommand(strSQL);
 
-          var delObj2 = (from u in _connection.durations
-                        where u.idFile == idFile
-                        select u).FirstOrDefault();
-
-          if (delObj2 != null)
-          {
-            _connection.DeleteObject(delObj2);
-            _connection.SaveChanges();
-          }
-
-          var delObj3 = (from u in _connection.filesmediainfoes
-                         where u.idFile == idFile
-                         select u).FirstOrDefault();
-
-          if (delObj3 != null)
-          {
-            _connection.DeleteObject(delObj3);
-            _connection.SaveChanges();
-          }
+          strSQL = String.Format("DELETE FROM filesmediainfo WHERE idfile={0}", idFile);
+          _connection.ExecuteStoreCommand(strSQL);
         }
 
-        var delObj4 = (from u in _connection.files
-                       where u.idMovie == lMovieId
-                       select u).FirstOrDefault();
-
-        if (delObj4 != null)
-        {
-          _connection.DeleteObject(delObj4);
-          _connection.SaveChanges();
-        }
+        strSQL = String.Format("DELETE FROM files WHERE idMovie={0}", lMovieId);
+        _connection.ExecuteStoreCommand(strSQL);
       }
       catch (Exception ex)
       {
@@ -604,6 +629,11 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public int GetFileId(string strFilenameAndPath)
     {
+      if (!IsConnected())
+      {
+        return -1;
+      }
+
       int lPathId;
       int lMovieId;
       return GetFile(strFilenameAndPath, out lPathId, out lMovieId, true);
@@ -615,14 +645,13 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        if (null == _connection)
-        {
-          return -1;
-        }
-
-        var query = (from sql in _connection.files
+        /*var query = (from sql in _connection.files
                      where sql.idMovie == movieId
-                     select sql).FirstOrDefault<Databases.file>();
+                     select sql).FirstOrDefault<Databases.file>();*/
+
+        string strSQL = String.Format("SELECT * FROM files WHERE idMovie = {0} ORDER BY strFilename", movieId);
+
+        var query = _connection.ExecuteStoreQuery<Databases.file>(strSQL).FirstOrDefault();
 
         if (query != null)
         {
@@ -648,7 +677,7 @@ namespace MediaPortal.Video.Database.SqlServer
       {
         files.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -661,7 +690,7 @@ namespace MediaPortal.Video.Database.SqlServer
         var query = (from sql in _connection.paths
                      join sql2 in _connection.files on sql.idPath equals sql2.idPath
                      where sql2.idMovie == lMovieId
-                     select new {sql.strPath, sql2.strFilename} ).ToList();
+                     select new { sql.strPath, sql2.strFilename }).ToList();
 
         if (query.Count == 0)
         {
@@ -706,9 +735,13 @@ namespace MediaPortal.Video.Database.SqlServer
 
         // Get path name from pathID
 
-        var query = (from sql in _connection.paths
+        /*var query = (from sql in _connection.paths
                      where sql.idPath == pathID
-                     select sql).FirstOrDefault<Databases.path>();
+                     select sql).FirstOrDefault<Databases.path>();*/
+
+        strSQL = String.Format("SELECT * FROM path WHERE idPath={0}", pathID);
+
+        var query = _connection.ExecuteStoreQuery<Databases.path>(strSQL).FirstOrDefault();
 
         // No ftp or http videos
         if (query == null)
@@ -740,9 +773,13 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         // Check if we processed file allready
-        var query2 = (from sql in _connection.filesmediainfoes
+        /*var query2 = (from sql in _connection.filesmediainfoes
                       where sql.idFile == fileID
-                      select sql).FirstOrDefault();
+                      select sql).FirstOrDefault();*/
+
+        strSQL = String.Format("SELECT * FROM filesmediainfo WHERE idFile={0}", fileID);
+
+        var query2 = _connection.ExecuteStoreQuery<Databases.filesmediainfo>(strSQL).FirstOrDefault();
 
         if (query2 == null || refresh)
         {
@@ -811,37 +848,30 @@ namespace MediaPortal.Video.Database.SqlServer
 
             if (query2 == null)
             {
-              Databases.filesmediainfo obj = new Databases.filesmediainfo()
-              {
-                idFile = fileID,
-                videoCodec = Util.Utils.MakeFileName(mInfo.VideoCodec),
-                videoResolution = mInfo.VideoResolution,
-                aspectRatio = mInfo.AspectRatio,
-                hasSubtitles = Convert.ToBoolean(subtitles),
-                audioCodec = Util.Utils.MakeFileName(mInfo.AudioCodec),
-                audioChannels = mInfo.AudioChannelsFriendly
-              };
-
-              _connection.filesmediainfoes.AddObject(obj);
+              strSQL = String.Format(
+                "INSERT INTO filesmediainfo (idFile, videoCodec, videoResolution, aspectRatio, hasSubtitles, audioCodec, audioChannels) VALUES({0},'{1}','{2}','{3}',{4},'{5}','{6}')",
+                fileID,
+                Util.Utils.MakeFileName(mInfo.VideoCodec),
+                mInfo.VideoResolution,
+                mInfo.AspectRatio,
+                subtitles,
+                Util.Utils.MakeFileName(mInfo.AudioCodec),
+                mInfo.AudioChannelsFriendly);
             }
             else
             {
-              var query3 = (from sql in _connection.filesmediainfoes
-                           where sql.idFile == fileID
-                           select sql).ToList();
-
-              foreach (Databases.filesmediainfo q in query3)
-              {
-                q.videoCodec = Util.Utils.MakeFileName(mInfo.VideoCodec);
-                q.videoResolution = mInfo.VideoResolution;
-                q.aspectRatio = mInfo.AspectRatio;
-                q.hasSubtitles = Convert.ToBoolean(subtitles);
-                q.audioCodec = Util.Utils.MakeFileName(mInfo.AudioCodec);
-                q.audioChannels = mInfo.AudioChannelsFriendly;
-              }
+              strSQL = String.Format(
+                "UPDATE filesmediainfo SET videoCodec='{1}', videoResolution='{2}', aspectRatio='{3}', hasSubtitles='{4}', audioCodec='{5}', audioChannels='{6}' WHERE idFile={0}",
+                fileID,
+                Util.Utils.MakeFileName(mInfo.VideoCodec),
+                mInfo.VideoResolution,
+                mInfo.AspectRatio,
+                subtitles,
+                Util.Utils.MakeFileName(mInfo.AudioCodec),
+                mInfo.AudioChannelsFriendly);
             }
 
-            _connection.SaveChanges();
+            _connection.ExecuteStoreCommand(strSQL);
 
             SetVideoDuration(fileID, mInfo.VideoDuration / 1000);
             ArrayList movieFiles = new ArrayList();
@@ -851,15 +881,8 @@ namespace MediaPortal.Video.Database.SqlServer
 
             //Update movie subtitle field
 
-            var query5 = (from sql in _connection.movies
-                          where sql.idMovie == movieId
-                          select sql).FirstOrDefault();
-
-            if (query5 != null)
-            {
-              query5.hasSubtitles = subtitles;
-              _connection.SaveChanges();
-            }
+            strSQL = String.Format("UPDATE movie SET hasSubtitles={0} WHERE idMovie={1} ", subtitles, movieId);
+            _connection.ExecuteStoreCommand(strSQL);
           }
           catch (ThreadAbortException)
           {
@@ -879,6 +902,11 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void GetVideoFilesMediaInfo(string strFilenameAndPath, ref VideoFilesMediaInfo mediaInfo, bool refresh)
     {
+      if (!IsConnected())
+      {
+        return;
+      }
+      
       try
       {
         if (strFilenameAndPath == String.Empty || !Util.Utils.IsVideo(strFilenameAndPath))
@@ -899,9 +927,13 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         // Get media info from database
-        var query = (from sql in _connection.filesmediainfoes
-                      where sql.idFile == fileID
-                      select sql).FirstOrDefault();
+        /*var query = (from sql in _connection.filesmediainfoes
+                     where sql.idFile == fileID
+                     select sql).FirstOrDefault();*/
+
+        string strSQL = String.Format("SELECT * FROM filesmediainfo WHERE idFile={0}", fileID);
+
+        var query = _connection.ExecuteStoreQuery<Databases.filesmediainfo>(strSQL).FirstOrDefault();
 
         if (query == null)
         {
@@ -915,9 +947,14 @@ namespace MediaPortal.Video.Database.SqlServer
           {
             CheckMediaInfo(string.Empty, strFilenameAndPath, -1, fileID, refresh);
 
-            query = (from sql in _connection.filesmediainfoes
+            /*query = (from sql in _connection.filesmediainfoes
                      where sql.idFile == fileID
-                     select sql).FirstOrDefault();
+                     select sql).FirstOrDefault();*/
+
+            strSQL = String.Format("SELECT * FROM filesmediainfo WHERE idFile={0}", fileID);
+
+            query = _connection.ExecuteStoreQuery<Databases.filesmediainfo>(strSQL).FirstOrDefault();
+
           }
           catch (Exception) { }
         }
@@ -936,7 +973,7 @@ namespace MediaPortal.Video.Database.SqlServer
         {
           mediaInfo.HasSubtitles = false;
         }
-        
+
         mediaInfo.AudioCodec = query.audioCodec;
         mediaInfo.AudioChannels = query.audioChannels;
         mediaInfo.Duration = GetVideoDuration(fileID);
@@ -969,9 +1006,13 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         // Get media info from database
-        var query = (from sql in _connection.filesmediainfoes
-                 where sql.idFile == fileID
-                 select sql).FirstOrDefault();
+        /*var query = (from sql in _connection.filesmediainfoes
+                     where sql.idFile == fileID
+                     select sql).FirstOrDefault();*/
+
+        string strSQL = String.Format("SELECT * FROM filesmediainfo WHERE idFile={0}", fileID);
+
+        var query = _connection.ExecuteStoreQuery<Databases.filesmediainfo>(strSQL).FirstOrDefault();
 
         if (query == null)
         {
@@ -1010,6 +1051,11 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public bool HasMediaInfo(string fileName)
     {
+      if (!IsConnected())
+      {
+        return false;
+      }
+      
       try
       {
         if (fileName == String.Empty || !Util.Utils.IsVideo(fileName))
@@ -1026,9 +1072,13 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         // Get media info from database
-        var query = (from sql in _connection.filesmediainfoes
+        /*var query = (from sql in _connection.filesmediainfoes
                      where sql.idFile == fileID
-                     select sql).FirstOrDefault();
+                     select sql).FirstOrDefault();*/
+
+        string strSQL = String.Format("SELECT * FROM filesmediainfo WHERE idFile={0}", fileID);
+
+        var query = _connection.ExecuteStoreQuery<Databases.filesmediainfo>(strSQL).FirstOrDefault();
 
         if (query != null)
         {
@@ -1054,28 +1104,27 @@ namespace MediaPortal.Video.Database.SqlServer
         string strGenre = strGenre1.Trim();
         RemoveInvalidChars(ref strGenre);
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return -1;
         }
 
-        var query = (from sql in _connection.genres
-                     where sql.strGenre == strGenre
-                     select sql).FirstOrDefault();
+        string strSQL = "SELECT * FROM genre WHERE strGenre LIKE '";
+        strSQL += strGenre;
+        strSQL += "'";
+
+        var query = _connection.ExecuteStoreQuery<Databases.genre>(strSQL).FirstOrDefault();
 
         if (query == null)
         {
           // doesnt exists, add it
-          Databases.genre ins = new Databases.genre()
-          {
-            strGenre = strGenre
-          };
-          _connection.genres.AddObject(ins);
-          _connection.SaveChanges();
+          string strInsertSQL = "INSERT INTO genre (idGenre, strGenre) VALUES( NULL, '";
+          strInsertSQL += strGenre;
+          strInsertSQL += "')";
 
-          var query2 = (from sql in _connection.genres
-                       where sql.strGenre == strGenre
-                       select sql).FirstOrDefault();
+          _connection.ExecuteStoreCommand(strInsertSQL);
+
+          var query2 = _connection.ExecuteStoreQuery<Databases.genre>(strSQL).FirstOrDefault();
 
           return query2.idGenre;
         }
@@ -1094,7 +1143,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void GetGenres(ArrayList genres)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return;
       }
@@ -1102,9 +1151,9 @@ namespace MediaPortal.Video.Database.SqlServer
       {
         genres.Clear();
 
-        var query = (from sql in _connection.genres
-                     orderby sql.strGenre
-                     select sql).ToList();
+        string strSQL = "SELECT * FROM genre ORDER BY strGenre";
+
+        var query = _connection.ExecuteStoreQuery<Databases.genre>(strSQL).ToList();
 
         if (query.Count == 0)
         {
@@ -1125,7 +1174,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public string GetGenreById(int genreId)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return string.Empty;
       }
@@ -1134,9 +1183,9 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        var query = (from sql in _connection.genres
-                     where sql.idGenre == genreId
-                     select sql).FirstOrDefault();
+        string strSQL = string.Format("SELECT * FROM genre WHERE idGenre = {0}", genreId);
+
+        var query = _connection.ExecuteStoreQuery<Databases.genre>(strSQL).FirstOrDefault();
 
         if (query == null)
         {
@@ -1155,33 +1204,30 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void AddGenreToMovie(int lMovieId, string strGenre)
     {
-        AddGenreToMovie(lMovieId, AddGenre(strGenre));
+      AddGenreToMovie(lMovieId, AddGenre(strGenre));
     }
 
     public void AddGenreToMovie(int lMovieId, int lGenreId)
     {
       try
       {
-        Log.Debug("videodatabaseADO:AddGenreToMovie begin {0} {1}", lMovieId, lGenreId);
-        if (null == _connection)
+        if (!IsConnected())
         {
           return;
         }
-//        var query = (from sql in _connection.genrelinkmovies
-//                     where sql.idGenre == lGenreId && sql.idMovie == lGenreId
-//                     select sql).FirstOrDefault();
-//
-//        if (query == null)
-//        {
+
+        string strSQL = String.Format("SELECT * FROM genrelinkmovie WHERE idGenre={0} AND idMovie={1}", lGenreId,
+                              lMovieId);
+
+        var query = _connection.ExecuteStoreQuery<Databases.genrelinkmovie>(strSQL).FirstOrDefault();
+
+        if (query == null)
+        {
           // doesnt exists, add it
-          Databases.genrelinkmovie u = new Databases.genrelinkmovie()
-          {
-            idGenre = lGenreId,
-            idMovie = lMovieId
-          };
-          _connection.genrelinkmovies.AddObject(u);
-          _connection.SaveChanges();
-//        }
+          strSQL = String.Format("INSERT INTO genrelinkmovie (idGenre, idMovie) VALUES({0}, {1})", lGenreId, lMovieId);
+
+          _connection.ExecuteStoreCommand(strSQL);
+        }
       }
       catch (Exception ex)
       {
@@ -1219,8 +1265,8 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         var delObj2 = (from u in _connection.genres
-                      where u.idGenre == idGenre
-                      select u).FirstOrDefault();
+                       where u.idGenre == idGenre
+                       select u).FirstOrDefault();
 
         if (delObj2 != null)
         {
@@ -1234,50 +1280,47 @@ namespace MediaPortal.Video.Database.SqlServer
         ConnectDb();
       }
     }
-
     public void RemoveGenreForMovie(int lMovieId, string strGenre)
     {
-        try
+      try
+      {
+        if (_connection == null)
         {
-            if (_connection == null)
-            {
-                return;
-            }
+          return;
+        }
 
-            strGenre = strGenre.Trim();
-            RemoveInvalidChars(ref strGenre);
-            var query = (from sql in _connection.genres
+        strGenre = strGenre.Trim();
+        RemoveInvalidChars(ref strGenre);
+        var query = (from sql in _connection.genres
                      where sql.strGenre == strGenre
                      select sql).FirstOrDefault();
 
-            if (query == null)
-            {
-              return;
-            }
-            int idGenre = query.idGenre;
-            var delObj = (from u in _connection.genrelinkmovies
-                          where (u.idMovie == lMovieId && u.idGenre == idGenre)
-                          select u).FirstOrDefault();
-
-            if (delObj != null)
-            {
-                _connection.DeleteObject(delObj);
-                _connection.SaveChanges();
-            }
-        }
-        catch (Exception ex)
+        if (query == null)
         {
-            Log.Error("videodatabaseADO:RemoveGenresForMovie exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
-            ConnectDb();
+          return;
         }
+        int idGenre = query.idGenre;
+        var delObj = (from u in _connection.genrelinkmovies
+                      where (u.idMovie == lMovieId && u.idGenre == idGenre)
+                      select u).FirstOrDefault();
+        if (delObj != null)
+        {
+          _connection.DeleteObject(delObj);
+          _connection.SaveChanges();
+        }
+      }
+      catch (Exception ex)
+      {
+        Log.Error("videodatabaseADO:RemoveGenresForMovie exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
+        ConnectDb();
+      }
     }
-
 
     public void RemoveGenresForMovie(int lMovieId)
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -1310,7 +1353,7 @@ namespace MediaPortal.Video.Database.SqlServer
         string strUserGroup = userGroup.Trim();
         RemoveInvalidChars(ref strUserGroup);
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return -1;
         }
@@ -1318,7 +1361,7 @@ namespace MediaPortal.Video.Database.SqlServer
         var query = (from sql in _connection.usergroups
                      where sql.strGroup == strUserGroup
                      select sql).FirstOrDefault();
-        
+
         if (query == null)
         {
           // doesnt exists, add it
@@ -1333,8 +1376,8 @@ namespace MediaPortal.Video.Database.SqlServer
           _connection.SaveChanges();
 
           var query2 = (from sql in _connection.usergroups
-                       where sql.strGroup == strUserGroup
-                       select sql).FirstOrDefault();
+                        where sql.strGroup == strUserGroup
+                        select sql).FirstOrDefault();
 
           return query2.idGroup;
         }
@@ -1358,7 +1401,7 @@ namespace MediaPortal.Video.Database.SqlServer
         string strUserGroup = userGroup.Trim();
         RemoveInvalidChars(ref strUserGroup);
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return -1;
         }
@@ -1390,7 +1433,7 @@ namespace MediaPortal.Video.Database.SqlServer
         string strGroupDescription = description.Trim();
         RemoveInvalidChars(ref strGroupDescription);
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -1407,7 +1450,7 @@ namespace MediaPortal.Video.Database.SqlServer
           {
             var query2 = (from sql in _connection.usergroups
                           where sql.idGroup == groupId
-                         select sql).FirstOrDefault();
+                          select sql).FirstOrDefault();
 
             query2.strGroupDescription = strGroupDescription;
             _connection.SaveChanges();
@@ -1425,14 +1468,14 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
 
         var query = (from sql in _connection.usergroups
-                      where sql.idGroup == groupId
-                      select sql).FirstOrDefault();
+                     where sql.idGroup == groupId
+                     select sql).FirstOrDefault();
 
         if (query != null)
         {
@@ -1451,7 +1494,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -1475,7 +1518,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void GetUserGroups(ArrayList userGroups)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return;
       }
@@ -1506,7 +1549,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public string GetUserGroupById(int groupId)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return string.Empty;
       }
@@ -1534,7 +1577,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public string GetUserGroupDescriptionById(int groupId)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return string.Empty;
       }
@@ -1567,7 +1610,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void GetMovieUserGroups(int movieId, ArrayList userGroups)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return;
       }
@@ -1610,14 +1653,14 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return string.Empty;
         }
 
         var query = (from sql in _connection.usergroups
-                      where sql.strGroup == groups
-                      select sql).FirstOrDefault();
+                     where sql.strGroup == groups
+                     select sql).FirstOrDefault();
 
         if (query != null)
         {
@@ -1636,7 +1679,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -1669,7 +1712,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -1710,8 +1753,8 @@ namespace MediaPortal.Video.Database.SqlServer
         int idUserGroup = query.idGroup;
 
         var query2 = (from sql in _connection.usergroups
-                     where sql.idGroup == idUserGroup
-                     select sql).FirstOrDefault();
+                      where sql.idGroup == idUserGroup
+                      select sql).FirstOrDefault();
 
         _connection.DeleteObject(query2);
         _connection.SaveChanges();
@@ -1742,14 +1785,14 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
 
         var query = (from sql in _connection.usergrouplinkmovies
-                      where sql.idMovie == lMovieId
-                      select sql).ToList();
+                     where sql.idMovie == lMovieId
+                     select sql).ToList();
 
         foreach (var q in query)
         {
@@ -1768,7 +1811,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -1801,7 +1844,7 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref strActorImdbId);
         RemoveInvalidChars(ref strActorName);
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return -1;
         }
@@ -1884,16 +1927,18 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void GetActors(ArrayList actors)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return;
       }
       try
       {
         actors.Clear();
- 
-        var query = (from sql in _connection.actors
-                     select sql).ToList();
+
+        /*var query = (from sql in _connection.actors
+                     select sql).ToList();*/
+
+        var query = _connection.ExecuteStoreQuery<Databases.actor>("SELECT * FROM actors").ToList();
 
         if (query.Count == 0)
         {
@@ -1916,7 +1961,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public string GetActorNameById(int actorId)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return string.Empty;
       }
@@ -1925,9 +1970,13 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        var query = (from sql in _connection.actors
+        /*var query = (from sql in _connection.actors
                      where sql.idActor == actorId
-                     select sql).FirstOrDefault();
+                     select sql).FirstOrDefault();*/
+
+        string strSQL = string.Format("SELECT strActor FROM actors WHERE idActor = {0}", actorId);
+
+        var query = _connection.ExecuteStoreQuery<Databases.actor>(strSQL).FirstOrDefault();
 
         if (query == null)
         {
@@ -1946,8 +1995,8 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void GetActorByName(string strActorName, ArrayList actors)
     {
-      //strActorName = RemoveInvalidChars(strActorName);
-      if (_connection == null)
+      strActorName = RemoveInvalidChars(strActorName);
+      if (!IsConnected())
       {
         return;
       }
@@ -1956,9 +2005,13 @@ namespace MediaPortal.Video.Database.SqlServer
       {
         actors.Clear();
 
-        var query = (from sql in _connection.actors
-                     where sql.strActor == strActorName //|| sql.strActor.Contains(strActorName) // regeszter like?
-                     select sql).ToList();
+        /*var query = (from sql in _connection.actors
+                     where sql.strActor == strActorName //|| sql.strActor.Contains(strActorName) 
+                     select sql).ToList();*/
+
+        string strSQL = string.Format("SELECT * FROM actors WHERE strActor LIKE '%" + strActorName + "%'");
+
+        var query = _connection.ExecuteStoreQuery<Databases.actor>(strSQL).ToList();
 
         if (query.Count == 0)
         {
@@ -1981,16 +2034,15 @@ namespace MediaPortal.Video.Database.SqlServer
 
     private int CheckActorByName(string strActorName)
     {
-      if (_connection == null)
-      {
-        return -1;
-      }
-
       try
       {
-        var query = (from sql in _connection.actors
-                     where sql.strActor == strActorName //|| sql.strActor.Contains(strActorName) //regeszter like?
-                     select sql).FirstOrDefault();
+        /*var query = (from sql in _connection.actors
+                     where sql.strActor == strActorName //|| sql.strActor.Contains(strActorName)
+                     select sql).FirstOrDefault();*/
+
+        string strSQL = string.Format("SELECT * FROM actors WHERE strActor LIKE '%" + strActorName + "%'");
+
+        var query = _connection.ExecuteStoreQuery<Databases.actor>(strSQL).FirstOrDefault();
 
         if (query == null)
         {
@@ -2015,7 +2067,7 @@ namespace MediaPortal.Video.Database.SqlServer
       {
         actorsByMovieID.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -2047,7 +2099,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -2061,7 +2113,7 @@ namespace MediaPortal.Video.Database.SqlServer
         if (query == null)
         {
           // doesnt exists, add it
-        
+
           Databases.actorlinkmovie obj = new Databases.actorlinkmovie()
           {
             idActor = lActorId,
@@ -2124,7 +2176,7 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         int idactor = query.idActor;
-        
+
         var query2 = (from sql in _connection.actorlinkmovies
                       where sql.idActor == idactor
                       select sql).ToList();
@@ -2137,7 +2189,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
         var query3 = (from sql in _connection.actors
                       where sql.idActor == idactor
-                     select sql).FirstOrDefault();
+                      select sql).FirstOrDefault();
 
         _connection.DeleteObject(query3);
         _connection.SaveChanges();
@@ -2153,7 +2205,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -2179,14 +2231,14 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return string.Empty;
         }
 
         var query = (from sql in _connection.actorlinkmovies
-                    where sql.idMovie == lMovieId && sql.idActor == lActorId
-                    select sql).FirstOrDefault();
+                     where sql.idMovie == lMovieId && sql.idActor == lActorId
+                     select sql).FirstOrDefault();
 
         if (query != null)
         {
@@ -2209,7 +2261,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -2241,11 +2293,11 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void AddBookMarkToMovie(string strFilenameAndPath, float fTime)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return;
       }
-      
+
       try
       {
         int lPathId, lMovieId;
@@ -2296,7 +2348,7 @@ namespace MediaPortal.Video.Database.SqlServer
           return;
         }
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -2495,7 +2547,7 @@ namespace MediaPortal.Video.Database.SqlServer
         details1.WritingCredits = strLine;
         // Genres
         //Clear old genres link for movie
-        //RemoveGenresForMovie(lMovieId);
+        RemoveGenresForMovie(lMovieId);
         strLine = details1.Genre;
         RemoveInvalidChars(ref strLine);
         details1.Genre = strLine;
@@ -2542,8 +2594,7 @@ namespace MediaPortal.Video.Database.SqlServer
               if (!string.IsNullOrEmpty(strGenre.Trim()))
               {
                 int lGenreId = AddGenre(strGenre.Trim());
-                AddGenreToMovie(lMovieId, lGenreId);
-                //vecGenres.Add(lGenreId);
+                vecGenres.Add(lGenreId);
               }
             }
           }
@@ -2552,15 +2603,14 @@ namespace MediaPortal.Video.Database.SqlServer
             string strGenre = details.Genre;
             strGenre = strGenre.Trim();
             int lGenreId = AddGenre(strGenre);
-            AddGenreToMovie(lMovieId, lGenreId);
-//            vecGenres.Add(lGenreId);
+            vecGenres.Add(lGenreId);
           }
         }
 
-//        for (int i = 0; i < vecGenres.Count; ++i)
-//        {
-//          AddGenreToMovie(lMovieId, (int)vecGenres[i]);
-//        }
+        for (int i = 0; i < vecGenres.Count; ++i)
+        {
+          AddGenreToMovie(lMovieId, (int)vecGenres[i]);
+        }
 
         string strRating = String.Format("{0}", details1.Rating);
 
@@ -2579,45 +2629,45 @@ namespace MediaPortal.Video.Database.SqlServer
 
           Databases.movieinfo obj = new Databases.movieinfo()
           {
-            idMovie = lMovieId, 
-            idDirector = lDirector, 
+            idMovie = lMovieId,
+            idDirector = lDirector,
             strPlotOutline = details1.PlotOutline,
-            strPlot = details1.Plot, 
+            strPlot = details1.Plot,
             strTagLine = details1.TagLine,
-            strVotes = details1.Votes, 
+            strVotes = details1.Votes,
             fRating = strRating,
-            strCast = details1.Cast, 
+            strCast = details1.Cast,
             strCredits = details1.WritingCredits,
-            iYear = details1.Year, 
+            iYear = details1.Year,
             strGenre = details1.Genre,
-            strPictureURL = details1.ThumbURL, 
+            strPictureURL = details1.ThumbURL,
             strTitle = details1.Title,
-            IMDBID = details1.IMDBNumber, 
+            IMDBID = details1.IMDBNumber,
             mpaa = details1.MPARating,
-            runtime = details1.RunTime, 
+            runtime = details1.RunTime,
             iswatched = details1.Watched,
-            strUserReview = details1.UserReview, 
+            strUserReview = details1.UserReview,
             strFanartURL = details1.FanartURL,
-            strDirector = details1.Director, 
+            strDirector = details1.Director,
             dateAdded = Convert.ToDateTime(details1.DateAdded),
             dateWatched = Convert.ToDateTime("1999-01-01 00:00:00"),
-            studios = details1.Studios, 
+            studios = details1.Studios,
             country = details1.Country,
-            language = details1.Language, 
-            lastupdate = Convert.ToDateTime(details1.LastUpdate), 
+            language = details1.Language,
+            lastupdate = Convert.ToDateTime(details1.LastUpdate),
             strSortTitle = details1.SortTitle
           };
 
           _connection.movieinfoes.AddObject(obj);
           _connection.SaveChanges();
-          
+
           // Update latest movies
           SetLatestMovieProperties();
         }
         else
         {
           // Update movie info (no dateAdded update)
-             
+
           query.idDirector = lDirector;
           query.strPlotOutline = details1.PlotOutline;
           query.strPlot = details1.Plot;
@@ -2672,7 +2722,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -2713,8 +2763,8 @@ namespace MediaPortal.Video.Database.SqlServer
         _connection.SaveChanges();
 
         var query2 = (from sql in _connection.actorlinkmovies
-                     where sql.idMovie == lMovieId
-                     select sql).ToList();
+                      where sql.idMovie == lMovieId
+                      select sql).ToList();
         foreach (var q in query2)
         {
           _connection.DeleteObject(q);
@@ -2766,7 +2816,7 @@ namespace MediaPortal.Video.Database.SqlServer
       }
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return false;
         }
@@ -2778,9 +2828,13 @@ namespace MediaPortal.Video.Database.SqlServer
           return false;
         }
 
-        var query = (from sql in _connection.movieinfoes
+        /*var query = (from sql in _connection.movieinfoes
                      where sql.idMovie == lMovieId
-                     select sql).FirstOrDefault();
+                     select sql).FirstOrDefault();*/
+
+        string strSQL = String.Format("SELECT * FROM movieinfo WHERE idMovie={0}", lMovieId);
+
+        var query = _connection.ExecuteStoreQuery<Databases.movieinfo>(strSQL).FirstOrDefault();
 
         if (query == null)
         {
@@ -2822,13 +2876,18 @@ namespace MediaPortal.Video.Database.SqlServer
     // Changed Added DirectorID, userrev, fanart
     public void GetMovieInfoById(int lMovieId, ref IMDBMovie details)
     {
+      if (!IsConnected())
+      {
+        return;
+      }
+      
       try
       {
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                     join s2 in _connection.paths on s1.idPath equals s2.idPath
-                     where sql.idMovie == lMovieId
-                     select sql).ToList();
+                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
+                                           where sql.idMovie == lMovieId
+                                           select sql).ToList();
 
         if (query.Count == 0)
         {
@@ -2851,7 +2910,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -2884,7 +2943,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -2923,7 +2982,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void DeleteMovieStopTime(int iFileId)
     {
-      if (null == _connection)
+      if (!IsConnected())
       {
         return;
       }
@@ -3044,25 +3103,11 @@ namespace MediaPortal.Video.Database.SqlServer
                      where sql.idFile == iFileId && sql.bdtitle == bdtitle
                      select sql).FirstOrDefault();
         int stoptime;
-        int BDTileID;
 
         if (query != null)
         {
           stoptime = (int)query.stoptime;
-          string resumeString;
-          if (query.resumeData != null)
-          {
-            resumeString = query.resumeData.ToString();
-            resumeData = new byte[resumeString.Length / 2];
-            FromHexString(resumeString).CopyTo(resumeData, 0);
-          }
-          else
-          {
-            resumeData = new byte[2];
-            FromHexString("").CopyTo(resumeData, 0);
-          }
-
-
+          resumeData = query.resumeData;
           return stoptime;
         }
         else
@@ -3109,7 +3154,7 @@ namespace MediaPortal.Video.Database.SqlServer
         if (query != null)
         {
           query.stoptime = stoptime;
-          
+
           query.resumeData = resumeData;
 
           query.bdtitle = bdtitle;
@@ -3136,18 +3181,22 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public int GetMovieDuration(int iMovieId)
     {
-      if (null == _connection)
+      if (!IsConnected())
       {
         return 0;
       }
-      
+
       try
       {
         int duration = 0;
 
-        var query = (from sql in _connection.movies
-                     where sql.idMovie == iMovieId
-                     select sql).FirstOrDefault();
+        /* var query = (from sql in _connection.movies
+                      where sql.idMovie == iMovieId
+                      select sql).FirstOrDefault();*/
+
+        string strSQL = string.Format("SELECT * FROM movie WHERE idMovie={0}", iMovieId);
+
+        var query = _connection.ExecuteStoreQuery<Databases.movie>(strSQL).FirstOrDefault();
 
         if (query == null || query.iduration == null)
         {
@@ -3170,6 +3219,11 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public int GetVideoDuration(int iFileId)
     {
+      if (!IsConnected())
+      {
+        return 0;
+      }
+
       try
       {
         var query = (from sql in _connection.durations
@@ -3259,7 +3313,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
         query.strTitle = movieTitle;
         _connection.SaveChanges();
-    }
+      }
       catch (Exception ex)
       {
         Log.Error("videodatabaseADO:SetMovieTitle exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
@@ -3404,9 +3458,12 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        var query = (from sql in _connection.movies
+        /*var query = (from sql in _connection.movies
                      where sql.idMovie == idMovie
-                     select sql).FirstOrDefault();
+                     select sql).FirstOrDefault();*/
+        string strSQL = String.Format("SELECT * FROM movie WHERE idMovie={0}", idMovie);
+
+        var query = _connection.ExecuteStoreQuery<Databases.movie>(strSQL).FirstOrDefault();
 
         if (query == null)
         {
@@ -3457,7 +3514,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     private void DeleteMoviesInFolder(string strPath)
     {
-      var query = (from sql in _connection.paths 
+      var query = (from sql in _connection.paths
                    where sql.strPath.StartsWith(strPath)
                    select sql).ToList();
 
@@ -3471,8 +3528,8 @@ namespace MediaPortal.Video.Database.SqlServer
       foreach (KeyValuePair<int, string> kvp in pathList)
       {
         var query2 = (from sql in _connection.files
-                     where sql.idPath == kvp.Key
-                     select sql).ToList();
+                      where sql.idPath == kvp.Key
+                      select sql).ToList();
 
         for (int j = 0; j < query2.Count; ++j)
         {
@@ -3487,7 +3544,7 @@ namespace MediaPortal.Video.Database.SqlServer
       {
         int lPathId;
         int lMovieId;
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -3500,9 +3557,9 @@ namespace MediaPortal.Video.Database.SqlServer
 
         // Delete files attached to the movie
 
-        var query = (from sql in _connection.files 
+        var query = (from sql in _connection.files
                      join s1 in _connection.paths on sql.idPath equals s1.idPath
-                     where sql.idMovie == lMovieId 
+                     where sql.idMovie == lMovieId
                      orderby sql.strFilename
                      select sql).ToList();
 
@@ -3523,10 +3580,10 @@ namespace MediaPortal.Video.Database.SqlServer
         //
 
         var query2 = (from sql in _connection.genrelinkmovies
-                     where sql.idMovie == lMovieId
-                     select sql).ToList();
+                      where sql.idMovie == lMovieId
+                      select sql).ToList();
 
-        foreach(var q in query2)
+        foreach (var q in query2)
         {
           _connection.DeleteObject(q);
         }
@@ -3569,7 +3626,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public int AddMovie(string strFilenameAndPath, bool bHassubtitles)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return -1;
       }
@@ -3653,15 +3710,15 @@ namespace MediaPortal.Video.Database.SqlServer
       {
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
 
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                     join s2 in _connection.paths on s1.idPath equals s2.idPath
-                     select sql).ToList();
+                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
+                                           select sql).ToList();
 
         if (query.Count == 0)
         {
@@ -3692,7 +3749,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return false;
         }
@@ -3702,10 +3759,10 @@ namespace MediaPortal.Video.Database.SqlServer
           return false;
         }
 
-        var query = (from sql in _connection.movies 
-                     where sql.idMovie == lMovieId 
+        var query = (from sql in _connection.movies
+                     where sql.idMovie == lMovieId
                      select sql).FirstOrDefault();
-        
+
         if (query == null)
         {
           return false;
@@ -3731,13 +3788,13 @@ namespace MediaPortal.Video.Database.SqlServer
       RemoveInvalidChars(ref thumbURL);
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
 
-        var query = (from sql in _connection.movieinfoes 
-                     where sql.idMovie == lMovieId 
+        var query = (from sql in _connection.movieinfoes
+                     where sql.idMovie == lMovieId
                      select sql).FirstOrDefault();
 
         if (query == null)
@@ -3761,7 +3818,7 @@ namespace MediaPortal.Video.Database.SqlServer
       RemoveInvalidChars(ref fanartURL);
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -3790,7 +3847,7 @@ namespace MediaPortal.Video.Database.SqlServer
       RemoveInvalidChars(ref strDVDLabel);
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -3819,7 +3876,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void GetYears(ArrayList years)
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return;
       }
@@ -3871,18 +3928,18 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref strGenre);
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
 
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                     // join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                     // join s2 in _connection.paths on s1.idPath equals s2.idPath
-                     join s3 in _connection.genrelinkmovies on sql.idMovie equals s3.idMovie
-                     join s4 in _connection.genres on s3.idGenre equals s4.idGenre
-                     where s4.strGenre == strGenre
-                     select sql).ToList();
+                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
+                                           join s3 in _connection.genrelinkmovies on s1.idMovie equals s3.idMovie
+                                           join s4 in _connection.genres on s3.idGenre equals s4.idGenre
+                                           where s4.strGenre == strGenre
+                                           select sql).ToList();
 
         if (query.Count == 0)
         {
@@ -3911,7 +3968,7 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref strGenre);
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -3922,7 +3979,7 @@ namespace MediaPortal.Video.Database.SqlServer
                      join s3 in _connection.genrelinkmovies on s1.idMovie equals s3.idMovie
                      join s4 in _connection.genres on s3.idGenre equals s4.idGenre
                      where s4.strGenre == strGenre
-                     select sql).OrderBy(x =>x.idMovie).ToList();
+                     select sql).OrderBy(x => x.idMovie).ToList();
 
         List<Databases.movieinfo> list = query.Take(limit).ToList();
 
@@ -3951,15 +4008,13 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return titles;
         }
 
         var query = (from sql in _connection.movieinfoes
-                     join s3 in _connection.genrelinkmovies on sql.idMovie equals s3.idMovie
-                     join s4 in _connection.genres on s3.idGenre equals s4.idGenre
-                     where s4.strGenre == strGenre
+                     where sql.strGenre == strGenre //|| sql.strGenre.Contains(strGenre) //like?
                      orderby sql.strTitle ascending
                      select sql).ToList();
 
@@ -3988,19 +4043,19 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref strUserGroup);
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
 
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                     join s2 in _connection.paths on s1.idPath equals s2.idPath
-                     join s3 in _connection.usergrouplinkmovies on s1.idMovie equals s3.idMovie
-                     join s4 in _connection.usergroups on s3.idGroup equals s4.idGroup
-                     where s4.strGroup == strUserGroup
-                     orderby sql.strTitle ascending
-                     select sql).ToList();
+                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
+                                           join s3 in _connection.usergrouplinkmovies on s1.idMovie equals s3.idMovie
+                                           join s4 in _connection.usergroups on s3.idGroup equals s4.idGroup
+                                           where s4.strGroup == strUserGroup
+                                           orderby sql.strTitle ascending
+                                           select sql).ToList();
 
         if (query.Count == 0)
         {
@@ -4027,7 +4082,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return titles;
         }
@@ -4063,7 +4118,7 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref strUserGroup);
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -4106,18 +4161,18 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref strActor);
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
 
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                     join s2 in _connection.paths on s1.idPath equals s2.idPath
-                     join s3 in _connection.actorlinkmovies on s1.idMovie equals s3.idMovie
-                     join s4 in _connection.actors on s3.idActor equals s4.idActor
-                     where s4.strActor == strActor
-                     select sql).ToList();
+                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
+                                           join s3 in _connection.actorlinkmovies on s1.idMovie equals s3.idMovie
+                                           join s4 in _connection.actors on s3.idActor equals s4.idActor
+                                           where s4.strActor == strActor
+                                           select sql).ToList();
 
         if (query.Count == 0)
         {
@@ -4146,7 +4201,7 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref strActor);
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -4186,16 +4241,22 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return titles;
         }
 
-        var query = (from sql in _connection.movieinfoes
+        /*var query = (from sql in _connection.movieinfoes
                      join s1 in _connection.actorlinkmovies on sql.idMovie equals s1.idMovie
                      where s1.idActor == actorId
                      orderby sql.strTitle ascending
-                     select sql).ToList();
+                     select sql).ToList();*/
+
+        string strSQL = String.Format(
+         "SELECT DISTINCT movieinfo.strTitle FROM movieinfo INNER JOIN actorlinkmovie ON movieinfo.idMovie = actorlinkmovie.idMovie WHERE actorlinkmovie.idActor = {0} ORDER BY movieinfo.strTitle ASC",
+         actorId);
+
+        var query = _connection.ExecuteStoreQuery<string>(strSQL).ToList();
 
         if (query.Count == 0)
         {
@@ -4204,7 +4265,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
         for (int iRow = 0; iRow < query.Count; iRow++)
         {
-          titles += query[iRow].strTitle + "\n";
+          titles += query[iRow] + "\n";
         }
       }
       catch (Exception ex)
@@ -4221,7 +4282,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return titles;
         }
@@ -4230,7 +4291,7 @@ namespace MediaPortal.Video.Database.SqlServer
                      where sql.idDirector == directorId
                      select sql).Distinct().OrderBy(x => x.strTitle).ToList();
 
-         if (query.Count == 0)
+        if (query.Count == 0)
         {
           return titles;
         }
@@ -4257,17 +4318,17 @@ namespace MediaPortal.Video.Database.SqlServer
         Int32.TryParse(strYear, out iYear);
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
 
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                     join s2 in _connection.paths on s1.idPath equals s2.idPath
-                     where sql.iYear == iYear
-                     orderby sql.strTitle
-                     select sql).ToList();
+                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
+                                           where sql.iYear == iYear
+                                           orderby sql.strTitle
+                                           select sql).ToList();
 
         if (query.Count == 0)
         {
@@ -4296,7 +4357,7 @@ namespace MediaPortal.Video.Database.SqlServer
         Int32.TryParse(strYear, out iYear);
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -4337,7 +4398,7 @@ namespace MediaPortal.Video.Database.SqlServer
         int iYear;
         Int32.TryParse(strYear, out iYear);
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return titles;
         }
@@ -4382,7 +4443,7 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref strPath);
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -4395,9 +4456,9 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                     join s1 in _connection.files on sql.idMovie equals s1.idMovie
-                     where s1.idPath == lPathId
-                     select sql).ToList();
+                                           join s1 in _connection.files on sql.idMovie equals s1.idMovie
+                                           where s1.idPath == lPathId
+                                           select sql).ToList();
 
         if (query.Count == 0)
         {
@@ -4439,7 +4500,7 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref strPath);
         movies.Clear();
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -4486,13 +4547,13 @@ namespace MediaPortal.Video.Database.SqlServer
                                   bool genreTable, bool usergroupTable)
     {
       movies = new ArrayList();
-      
+
       sql = sql.Replace("\\", "\\\\").Trim();
       sql = sql.Replace("RANDOM()", "RAND()").Trim();
 
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -4598,13 +4659,13 @@ namespace MediaPortal.Video.Database.SqlServer
       movieList = new ArrayList();
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
 
         var query = _connection.ExecuteStoreQuery<custom1>(sql).ToList();
-  
+
         bool nonWordCharFound = false;
         int nwCount = 0;
 
@@ -4641,7 +4702,7 @@ namespace MediaPortal.Video.Database.SqlServer
               continue;
             }
           }
-        
+
           movie.Title = value;
           movie.RunTime = countN;
           movieList.Add(movie);
@@ -4688,7 +4749,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return titles;
         }
@@ -4721,8 +4782,8 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        var query = (from sql in _connection.paths 
-                     where sql.cdlabel == movieDetails.CDLabel 
+        var query = (from sql in _connection.paths
+                     where sql.cdlabel == movieDetails.CDLabel
                      select sql).FirstOrDefault();
 
         if (query == null)
@@ -4757,11 +4818,11 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return null;
         }
-        Log.Error("videodatabaseADO:GetResults {0}",sql);
+        Log.Error("videodatabaseADO:GetResults {0}", sql);
         SQLiteResultSet results = null;
         return results;
       }
@@ -4782,7 +4843,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -4794,7 +4855,7 @@ namespace MediaPortal.Video.Database.SqlServer
         if (query == null)
         {
           // doesnt exists, add it
-          
+
           Databases.actorinfo obj = new Databases.actorinfo()
           {
             idActor = idActor,
@@ -4814,14 +4875,14 @@ namespace MediaPortal.Video.Database.SqlServer
         else
         {
           // exists, modify it
-          
+
           query.dateofbirth = RemoveInvalidChars(actor.DateOfBirth);
           query.placeofbirth = RemoveInvalidChars(actor.PlaceOfBirth);
           query.minibio = RemoveInvalidChars(actor.MiniBiography);
           query.biography = RemoveInvalidChars(actor.Biography);
           query.thumbURL = RemoveInvalidChars(actor.ThumbnailUrl);
           query.IMDBActorID = RemoveInvalidChars(actor.IMDBActorID);
-          query.dateofdeath =  RemoveInvalidChars(actor.DateOfDeath);
+          query.dateofdeath = RemoveInvalidChars(actor.DateOfDeath);
           query.placeofdeath = RemoveInvalidChars(actor.PlaceOfDeath);
           query.lastupdate = DateTime.Now;
           _connection.SaveChanges();
@@ -4843,11 +4904,6 @@ namespace MediaPortal.Video.Database.SqlServer
       return;
     }
 
-    private string RemoveInvalidChars(string p)
-    {
-        throw new NotImplementedException();
-    }
-
     public void AddActorInfoMovie(int idActor, IMDBActor.IMDBActorMovie movie)
     {
       string movieTitle = RemoveInvalidChars(movie.MovieTitle);
@@ -4855,7 +4911,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -4863,7 +4919,7 @@ namespace MediaPortal.Video.Database.SqlServer
         Databases.actorinfomovy obj = new Databases.actorinfomovy()
         {
           idActor = idActor,
-          idDirector  = - 1,
+          idDirector = -1,
           strPlotOutline = "",
           strPlot = "",
           strTagLine = "",
@@ -4930,7 +4986,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -4959,7 +5015,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return null;
         }
@@ -4967,7 +5023,7 @@ namespace MediaPortal.Video.Database.SqlServer
         var query = (from sql in _connection.actorinfoes
                      join s1 in _connection.actors on sql.idActor equals s1.idActor
                      where s1.idActor == idActor
-                     select new {sql.biography, sql.dateofbirth, sql.dateofdeath, sql.minibio, s1.strActor, sql.placeofbirth, sql.placeofdeath, sql.thumbURL, sql.lastupdate, s1.IMDBActorID, sql.idActor }).FirstOrDefault(); 
+                     select new { sql.biography, sql.dateofbirth, sql.dateofdeath, sql.minibio, s1.strActor, sql.placeofbirth, sql.placeofdeath, sql.thumbURL, sql.lastupdate, s1.IMDBActorID, sql.idActor }).FirstOrDefault();
 
         if (query != null)
         {
@@ -4986,13 +5042,13 @@ namespace MediaPortal.Video.Database.SqlServer
 
           var query2 = (from sql in _connection.actorinfomovies
                         where sql.idActor == idActor
-                       select sql).ToList();
+                        select sql).ToList();
 
           for (int i = 0; i < query2.Count; ++i)
           {
             string imdbId = query2[i].IMDBID;
 
-            var query3 = (from sql in _connection.imdbmovies 
+            var query3 = (from sql in _connection.imdbmovies
                           where sql.idIMDB == imdbId
                           select sql).FirstOrDefault();
 
@@ -5005,14 +5061,14 @@ namespace MediaPortal.Video.Database.SqlServer
               // Added IMDBid
               movie.MovieTitle = query3.strTitle;
               movie.Year = (int)query3.iYear;
-              movie.MovieImdbID =  query3.idIMDB;
-              movie.MoviePlot =  query3.strPlot;
-              movie.MovieCover =  query3.strPictureURL;
-              movie.MovieGenre =  query3.strGenre;
-              movie.MovieCast =  query3.strCast;
-              movie.MovieCredits =  query3.strCredits;
+              movie.MovieImdbID = query3.idIMDB;
+              movie.MoviePlot = query3.strPlot;
+              movie.MovieCover = query3.strPictureURL;
+              movie.MovieGenre = query3.strGenre;
+              movie.MovieCast = query3.strCast;
+              movie.MovieCredits = query3.strCredits;
               movie.MovieRuntime = (int)query2[i].runtime; // Not used
-              movie.MovieMpaaRating =  query3.mpaa;
+              movie.MovieMpaaRating = query3.mpaa;
             }
             actor.Add(movie);
           }
@@ -5031,7 +5087,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return null;
         }
@@ -5040,7 +5096,7 @@ namespace MediaPortal.Video.Database.SqlServer
                      where sql.idActor == idActor
                      select sql).FirstOrDefault();
 
-        if (query == null)
+        if (query != null)
         {
           return query.IMDBActorID;
         }
@@ -5061,7 +5117,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return false;
         }
@@ -5086,7 +5142,7 @@ namespace MediaPortal.Video.Database.SqlServer
         RemoveInvalidChars(ref path);
 
         string strFileLength = fileInfo.Length.ToString();
-      
+
         var query = (from sql in _connection.videothumbblists
                      where sql.strPath == path && sql.strFileSize == strFileLength && sql.strExpires > DateTime.Now && sql.strFileDate == fileInfo.LastWriteTimeUtc
                      select sql).FirstOrDefault();
@@ -5108,7 +5164,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return -1;
         }
@@ -5130,7 +5186,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
         path = path.Trim();
         RemoveInvalidChars(ref path);
-        
+
         var query = (from sql in _connection.videothumbblists
                      where sql.strPath == path
                      select sql).FirstOrDefault();
@@ -5150,8 +5206,8 @@ namespace MediaPortal.Video.Database.SqlServer
           _connection.SaveChanges();
 
           var query2 = (from sql in _connection.videothumbblists
-                       where sql.strPath == path
-                       select sql).FirstOrDefault();
+                        where sql.strPath == path
+                        select sql).FirstOrDefault();
 
           int id = query2.idVideoThumbBList;
 
@@ -5193,7 +5249,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return false;
         }
@@ -5225,7 +5281,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -5234,7 +5290,7 @@ namespace MediaPortal.Video.Database.SqlServer
                      where sql.strExpires <= DateTime.Now
                      select sql).ToList();
 
-        foreach(var q in query)
+        foreach (var q in query)
         {
           _connection.DeleteObject(q);
         }
@@ -5251,7 +5307,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -5281,7 +5337,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -5309,7 +5365,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
       try
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return values;
         }
@@ -6029,7 +6085,7 @@ namespace MediaPortal.Video.Database.SqlServer
             string thumbTbnFile = string.Empty;
             string thumbFolderJpgFile = string.Empty;
             string thumbFolderTbnFile = string.Empty;
-            string titleExt = Util.Utils.GetCoverFilename(id, movie.IMDBNumber, movie.Title);
+            string titleExt = movie.Title + "{" + id + "}";
             string jpgExt = @".jpg";
             string tbnExt = @".tbn";
             string folderJpg = @"\folder.jpg";
@@ -6291,7 +6347,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
                 if (File.Exists(faFile))
                 {
-                  fa.GetLocalFanart(movie.IMDBNumber,id, "file://" + faFile, faIndex);
+                  fa.GetLocalFanart(movie.IMDBNumber, id, "file://" + faFile, faIndex);
                   movie.FanartURL = faFile;
                   faFound = true;
                 }
@@ -6321,7 +6377,7 @@ namespace MediaPortal.Video.Database.SqlServer
               {
                 if (File.Exists(fanart))
                 {
-                  fa.GetLocalFanart(movie.IMDBNumber,id, "file://" + fanart, faIndex);
+                    fa.GetLocalFanart(movie.IMDBNumber, id, "file://" + fanart, faIndex);
                   movie.FanartURL = fanart;
                   faFound = true;
                   break;
@@ -6716,7 +6772,7 @@ namespace MediaPortal.Video.Database.SqlServer
           CreateXmlNode(mainNode, doc, "playcount", watchedCount.ToString());
 
           // Poster
-          string titleExt = Util.Utils.GetCoverFilename(movieId, movieDetails.IMDBNumber, movieDetails.Title);
+          string titleExt = movieDetails.Title + "{" + movieId + "}";
           string largeCoverArtImage = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
           string coverFilename = moviePath + @"\" + movieFile + ".jpg";
 
@@ -7002,7 +7058,7 @@ namespace MediaPortal.Video.Database.SqlServer
         GUIPropertyManager.SetProperty("#myvideos.latest1.genre", movie1.Genre.Replace(" /", ","));
         //
         string poster = string.Empty;
-        string titleExt = Util.Utils.GetCoverFilename(movie1.ID, movie1.IMDBNumber, movie1.Title);
+        string titleExt = movie1.Title + "{" + movie1.ID + "}";
         poster = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
         GUIPropertyManager.SetProperty("#myvideos.latest1.thumb", poster);
         //
@@ -7026,7 +7082,7 @@ namespace MediaPortal.Video.Database.SqlServer
           GUIPropertyManager.SetProperty("#myvideos.latest2.genre", movie2.Genre.Replace(" /", ","));
           //
           poster = string.Empty;
-          titleExt = Util.Utils.GetCoverFilename(movie2.ID, movie2.IMDBNumber, movie2.Title);
+          titleExt = movie2.Title + "{" + movie2.ID + "}";
           poster = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
           GUIPropertyManager.SetProperty("#myvideos.latest2.thumb", poster);
           //
@@ -7050,7 +7106,7 @@ namespace MediaPortal.Video.Database.SqlServer
           GUIPropertyManager.SetProperty("#myvideos.latest3.genre", movie3.Genre.Replace(" /", ","));
           //
           poster = string.Empty;
-          titleExt = Util.Utils.GetCoverFilename(movie2.ID, movie2.IMDBNumber, movie2.Title);
+          titleExt = movie3.Title + "{" + movie3.ID + "}";
           poster = Util.Utils.GetLargeCoverArtName(Thumbs.MovieTitle, titleExt);
           GUIPropertyManager.SetProperty("#myvideos.latest3.thumb", poster);
           //
@@ -7098,7 +7154,7 @@ namespace MediaPortal.Video.Database.SqlServer
         {
           details.Rating /= 10.0f;
         }
- 
+
         details.Director = movieinfo[iRow].strDirector.Replace("''", "'");
         // Add directorID
         try
@@ -7214,7 +7270,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       get
       {
-        return _dbHealth;
+        return IsConnected();
       }
     }
 
@@ -7238,8 +7294,14 @@ namespace MediaPortal.Video.Database.SqlServer
     {
     }
 
-    public void RemoveInvalidChars(ref string strTxt)
+    static string RemoveInvalidChars(string aStringToClean)
     {
+        string result = aStringToClean;
+        RemoveInvalidChars(ref result);
+        return result;
+    }
+    private static void RemoveInvalidChars(ref string strtxt)
+    { 
     }
   }
 }

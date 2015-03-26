@@ -23,7 +23,9 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Collections;
+using System.Threading;
 using System.Xml.Serialization;
+using System.Runtime.CompilerServices;
 using MediaPortal.Configuration;
 using MediaPortal.Database;
 using MediaPortal.GUI.Library;
@@ -36,24 +38,51 @@ namespace Databases.Folders.SqlServer
   {
     private foldersettingEntities _connection;
     private bool _dbHealth = false;
+    private string _connectionString;
 
     public FolderSettingAdo()
     {
-      Log.Info("FolderSettingAdo");
-
       ConnectDb();
-      CreateTables();
+
+      Thread threadCreateDb = new Thread(CreateDb);
+      threadCreateDb.Priority = ThreadPriority.Lowest;
+      threadCreateDb.IsBackground = true;
+      threadCreateDb.Name = "CreateFolderDBThread";
+      threadCreateDb.Start();
+    }
+
+    private bool WaitForConnected()
+    {
+      for (int i = 1; i < 30; i++)
+      {
+        try
+        {
+          if (_connection == null)
+            return false;
+          
+          _connection.DatabaseExists();
+          return true;
+        }
+        catch (Exception ex)
+        {
+          if (i < 29)
+          {
+            Log.Debug("FolderdatabaseADO:WaitForConnected trying to connect to the database. {0}", i);
+          }
+          else
+          {
+            Log.Error("FolderdatabaseADO:WaitForConnected exception err:{0} stack:{1} {2}", ex.Message, ex.StackTrace, ex.InnerException);
+          }
+        }
+        Thread.Sleep(500);
+      }
+      return false;
     }
 
     private void ConnectDb()
     {
       try
       {
-        if (_connection != null)
-        {
-          return;
-        }
-
         string host;
         string userName;
         string password;
@@ -70,15 +99,34 @@ namespace Databases.Folders.SqlServer
         }
 
         string ConnectionString = string.Format(
-          "metadata=res://*/Model1.csdl|res://*/Model1.ssdl|res://*/Model1.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id={1};password={2};persistsecurityinfo=True;database=foldersetting\"",
+          "metadata=res://*/Model1.csdl|res://*/Model1.ssdl|res://*/Model1.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id={1};password={2};persistsecurityinfo=True;database=foldersetting;charset=utf8\"",
           host, userName, password);
 
         _connection = new foldersettingEntities(ConnectionString);
+        _connectionString = string.Format("server={0};user id={1};password={2}", host, userName, password);
       }
       catch (Exception ex)
       {
         Log.Error("FolderdatabaseADO:ConnectDb exception err:{0} stack:{1} {2}", ex.Message, ex.StackTrace, ex.InnerException);
       }
+    }
+
+    private bool IsConnected()
+    {
+      if (_connection == null)
+      {
+        return false;
+      }
+      else
+        if (_dbHealth)
+        {
+          return true;
+        }
+        else
+        {
+          CreateDb();
+          return _dbHealth;
+        }
     }
 
     public void Dispose()
@@ -90,38 +138,60 @@ namespace Databases.Folders.SqlServer
       }
     }
 
-    private void CreateTables()
+    [MethodImpl(MethodImplOptions.Synchronized)]
+    private void CreateDb()
     {
       if (_connection == null)
-      {
         return;
+      
+      string host;
+      using (Settings reader = new MPSettings())
+      {
+        host = reader.GetValueAsString("mpdatabase", "hostname", string.Empty);
+
+        if (host == string.Empty)
+        {
+          host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+        }
       }
+
+      if (!WakeupUtil.HandleWakeUpServer(host))
+      {
+        Log.Error("FolderSettingADO: database host is not connected.");
+      }
+
+      WaitForConnected();
 
       try
       {
         if (!_connection.DatabaseExists())
         {
-          Log.Error("FolderSetting: database is not exist, createing...");
-          _connection.CreateDatabase();
-       
-          ConnectDb();
+          Log.Debug("FolderSettingADO: database is not exist, createing...");
+          System.Reflection.Assembly assembly = this.GetType().Assembly;
+
+          string DatabaseName = assembly.GetName().Name + ".Video.Ado.create_videodatabase.sql";
+          _dbHealth = DatabaseUtility.CreateDb(_connectionString, DatabaseName);
         }
-        _dbHealth = true;
+        else
+        {
+          _dbHealth = true;
+          Log.Debug("FolderSettingADO: database is connected.");
+        }
       }
       catch (Exception ex)
       {
-        Log.Error("PicturedatabaseADO:CreateDb exception err:{0} stack:{1} {2}", ex.Message, ex.StackTrace, ex.InnerException);
+        Log.Error("FolderSettingADO:CreateDb exception err:{0} stack:{1} {2}", ex.Message, ex.StackTrace, ex.InnerException);
       }
     }
 
     private int AddPath(string filteredPath)
     {
-      if (string.IsNullOrEmpty(filteredPath))
+      if (!IsConnected())
       {
         return -1;
       }
-
-      if (null == _connection)
+      
+      if (string.IsNullOrEmpty(filteredPath))
       {
         return -1;
       }
@@ -134,7 +204,7 @@ namespace Databases.Folders.SqlServer
         if (query == null)
         {
           // doesnt exists, add it
-          Log.Debug("FolderSetting: AddPath doesnt exists, add it  {0}", filteredPath);
+          Log.Debug("FolderSettingADO: AddPath doesnt exists, add it  {0}", filteredPath);
           tblpath path = new tblpath()
           {
             strPath = filteredPath
@@ -156,14 +226,14 @@ namespace Databases.Folders.SqlServer
       }
       catch (Exception ex)
       {
-        Log.Error(ex);
+        Log.Error("FolderSettingADO:AddPath exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
       }
       return -1;
     }
 
     public void DeleteFolderSetting(string path, string Key)
     {
-      if (null == _connection)
+      if (!IsConnected())
       {
         return;
       }
@@ -182,8 +252,8 @@ namespace Databases.Folders.SqlServer
       {
         string pathFiltered = Utils.RemoveTrailingSlash(path);
         string keyFiltered = Key;
-        RemoveInvalidChars(ref pathFiltered);
-        RemoveInvalidChars(ref keyFiltered);
+        DatabaseUtility.RemoveInvalidChars(ref pathFiltered);
+        DatabaseUtility.RemoveInvalidChars(ref keyFiltered);
 
         int PathId = AddPath(pathFiltered);
         if (PathId < 0)
@@ -204,13 +274,12 @@ namespace Databases.Folders.SqlServer
       }
       catch (Exception ex)
       {
-        Log.Error(ex);
+        Log.Error("FolderSettingADO:DeleteFolderSetting exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
       }
     }
 
     public void AddFolderSetting(string path, string key, Type type, object Value)
     {
-      Log.Debug("FolderSetting: AddFolderSetting");
       if (string.IsNullOrEmpty(path))
       {
         return;
@@ -219,7 +288,7 @@ namespace Databases.Folders.SqlServer
       {
         return;
       }
-      if (null == _connection)
+      if (!IsConnected())
       {
         return;
       }
@@ -228,8 +297,8 @@ namespace Databases.Folders.SqlServer
       {
         string strPathFiltered = Utils.RemoveTrailingSlash(path);
         string KeyFiltered = key;
-        RemoveInvalidChars(ref strPathFiltered);
-        RemoveInvalidChars(ref KeyFiltered);
+        DatabaseUtility.RemoveInvalidChars(ref strPathFiltered);
+        DatabaseUtility.RemoveInvalidChars(ref KeyFiltered);
 
         int PathId = AddPath(strPathFiltered);
         if (PathId < 0)
@@ -253,7 +322,7 @@ namespace Databases.Folders.SqlServer
             {
               string ValueText = reader.ReadToEnd();
               string ValueTextFiltered = ValueText;
-              RemoveInvalidChars(ref ValueTextFiltered);
+              DatabaseUtility.RemoveInvalidChars(ref ValueTextFiltered);
 
               tblsetting obj = new tblsetting()
               {
@@ -270,7 +339,7 @@ namespace Databases.Folders.SqlServer
       }
       catch (Exception ex)
       {
-        Log.Error(ex);
+        Log.Error("FolderSettingADO:AddFolderSetting exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
       }
     }
 
@@ -286,7 +355,7 @@ namespace Databases.Folders.SqlServer
         {
           return;
         }
-        if (null == _connection)
+        if (!IsConnected())
         {
           return;
         }
@@ -308,7 +377,7 @@ namespace Databases.Folders.SqlServer
       }
       catch (Exception ex)
       {
-        Log.Error("Folderdatabase.GetPath() exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
+        Log.Error("FolderSettingADO.GetPath() exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
       }
     }
 
@@ -324,7 +393,7 @@ namespace Databases.Folders.SqlServer
       {
         return;
       }
-      if (null == _connection)
+      if (!IsConnected())
       {
         return;
       }
@@ -333,8 +402,8 @@ namespace Databases.Folders.SqlServer
       {
         string strPathFiltered = Utils.RemoveTrailingSlash(path);
         string KeyFiltered = key;
-        RemoveInvalidChars(ref strPathFiltered);
-        RemoveInvalidChars(ref KeyFiltered);
+        DatabaseUtility.RemoveInvalidChars(ref strPathFiltered);
+        DatabaseUtility.RemoveInvalidChars(ref KeyFiltered);
 
         int PathId = AddPath(strPathFiltered);
         if (PathId < 0)
@@ -354,22 +423,22 @@ namespace Databases.Folders.SqlServer
             string folderName;
             folderName = strPathFiltered.Substring(0, pos);
 
-            Log.Debug("GetFolderSetting: {1} not found, trying the parent {0}", folderName, strPathFiltered);
+            Log.Debug("FolderSettingADO:GetFolderSetting: {1} not found, trying the parent {0}", folderName, strPathFiltered);
             GetFolderSetting(folderName, key, type, out valueObject);
             return;
           }
           if (strPathFiltered != "root")
           {
-            Log.Debug("GetFolderSetting: {0} parent not found. Trying the root.", strPathFiltered);
+            Log.Debug("FolderSettingADO:GetFolderSetting: {0} parent not found. Trying the root.", strPathFiltered);
             GetFolderSetting("root", key, type, out valueObject);
             return;
           }
-          Log.Debug("GetFolderSetting: {0} parent not found. Will use the default share settings.", strPathFiltered);
+          Log.Debug("FolderSettingADO:GetFolderSetting: {0} parent not found. Will use the default share settings.", strPathFiltered);
           return;
         }
         string strValue = query.tagValue;
 
-        Log.Debug("GetFolderSetting: {0} found.", strPathFiltered);
+        Log.Debug("FolderSettingADO:GetFolderSetting: {0} found.", strPathFiltered);
         //deserialize...
 
         using (MemoryStream strm = new MemoryStream())
@@ -386,7 +455,10 @@ namespace Databases.Folders.SqlServer
                 XmlSerializer serializer = new XmlSerializer(type);
                 valueObject = serializer.Deserialize(r);
               }
-              catch (Exception) { }
+              catch (Exception ex) 
+              {
+                Log.Error("FolderSettingADO:GetFolderSetting exception err:{0} stack:{1}", ex.Message, ex.StackTrace); 
+              }
             }
           }
         }
@@ -394,7 +466,7 @@ namespace Databases.Folders.SqlServer
       }
       catch (Exception ex)
       {
-        Log.Error(ex);
+        Log.Error("FolderSetting:GetFolderSetting exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
       }
     }
 
@@ -414,13 +486,8 @@ namespace Databases.Folders.SqlServer
     {
       get
       {
-        return _dbHealth;
+        return IsConnected();
       }
     }
-
-    void RemoveInvalidChars(ref string strTxt)
-    {
-    }
-
   }
 }

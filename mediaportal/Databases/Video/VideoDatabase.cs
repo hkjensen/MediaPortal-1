@@ -54,6 +54,11 @@ namespace MediaPortal.Video.Database
       _database = null;
     }
 
+    public static bool IsConnected()
+    {
+      return _database.IsConnected();
+    }
+
     public static string DatabaseName
     {
       get

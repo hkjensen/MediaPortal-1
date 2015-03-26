@@ -778,6 +778,9 @@ namespace MediaPortal.GUI.Video
     protected override void LoadDirectory(string strNewDirectory)
     {
       GUIWaitCursor.Show();
+
+      System.Diagnostics.Stopwatch benchClock = System.Diagnostics.Stopwatch.StartNew();
+
       currentFolder = strNewDirectory;
       GUIControl.ClearControl(GetID, facadeLayout.GetID);
       ArrayList itemlist = new ArrayList();
@@ -1050,6 +1053,10 @@ namespace MediaPortal.GUI.Video
 
       UpdateButtonStates();
       GUIWaitCursor.Hide();
+
+      Log.Debug("GUIVideoTitle:LoadDirectory is finished in {0} ms", benchClock.ElapsedMilliseconds.ToString());
+      benchClock.Stop();
+
     }
     
     // Scan for new movies for selected folder in configuration

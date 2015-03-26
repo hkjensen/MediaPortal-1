@@ -44,13 +44,17 @@ namespace MediaPortal.Picture.Database
     private bool _usePicasa = false;
     private Databases.picturedatabaseEntities _connection;
     private bool _dbHealth = false;
+    private string _connectionString;
 
     public PictureDatabaseADO()
     {
-      Log.Info("PicturedatabaseADO");
-
       ConnectDb();
-      CreateDb();
+
+      Thread threadCreateDb = new Thread(CreateDb);
+      threadCreateDb.Priority = ThreadPriority.Lowest;
+      threadCreateDb.IsBackground = true;
+      threadCreateDb.Name = "CreatePictureDBThread";
+      threadCreateDb.Start();
     }
 
     [MethodImpl(MethodImplOptions.Synchronized)]
@@ -58,11 +62,6 @@ namespace MediaPortal.Picture.Database
     {
       try
       {
-        if (_connection != null)
-        {
-          return;
-        }
-
         string host;
         string userName;
         string password;
@@ -79,11 +78,11 @@ namespace MediaPortal.Picture.Database
         }
 
         string ConnectionString = string.Format(
-          "metadata=res://*/Model3.csdl|res://*/Model3.ssdl|res://*/Model3.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id={1};password={2};persistsecurityinfo=True;database=picturedatabase;Convert Zero Datetime=True\"",
+          "metadata=res://*/Model3.csdl|res://*/Model3.ssdl|res://*/Model3.msl;provider=MySql.Data.MySqlClient;provider connection string=\"server={0};user id={1};password={2};persistsecurityinfo=True;database=picturedatabase;Convert Zero Datetime=True;charset=utf8\"",
           host, userName, password);
 
          _connection = new Databases.picturedatabaseEntities(ConnectionString);
-         _dbHealth = true;
+         _connectionString = string.Format("server={0};user id={1};password={2}", host, userName, password);
       }
       catch (Exception ex)
       {
@@ -91,23 +90,94 @@ namespace MediaPortal.Picture.Database
       }
     }
 
+    private bool IsConnected()
+    {
+      if (_connection == null)
+      {
+        return false;
+      }
+      else
+        if (_dbHealth)
+        {
+          return true;
+        }
+        else
+        {
+          CreateDb();
+          return _dbHealth;
+        }
+    }
+
+    private bool WaitForConnected()
+    {
+      for (int i = 1; i < 30; i++)
+      {
+        try
+        {
+          if (_connection == null)
+            return false;
+          
+          _connection.DatabaseExists();
+          return true;
+        }
+        catch (Exception ex)
+        {
+          if (i < 29)
+          {
+            Log.Debug("PicturedatabaseADO:WaitForConnected trying to connect to the database. {0}", i);
+          }
+          else
+          {
+            Log.Error("PicturedatabaseADO:WaitForConnected exception err:{0} stack:{1} {2}", ex.Message, ex.StackTrace, ex.InnerException);
+          }
+        }
+        Thread.Sleep(500);
+      }
+      return false;
+    }
+
     [MethodImpl(MethodImplOptions.Synchronized)]
     private void CreateDb()
     {
       if (_connection == null)
-      {
         return;
+      
+      string host;
+      using (Settings reader = new MPSettings())
+      {
+        host = reader.GetValueAsString("mpdatabase", "hostname", string.Empty);
+
+        if (host == string.Empty)
+        {
+          host = reader.GetValueAsString("tvservice", "hostname", "localhost");
+        }
       }
+
+      if (!WakeupUtil.HandleWakeUpServer(host))
+      {
+        Log.Error("PicturedatabaseADO: database host is not connected.");
+      }
+
+      WaitForConnected();
 
       try
       {
+        if (_connection == null)
+          return;
+
         if (!_connection.DatabaseExists())
         {
-          Log.Debug("PictureDatabaseADO: database is not exist, createing...");
-          
-          _connection.CreateDatabase();
+          Log.Debug("PicturedatabaseADO: database is not exist, createing...");
+          System.Reflection.Assembly assembly = this.GetType().Assembly;
+
+          string DatabaseName = assembly.GetName().Name + ".Video.Ado.create_videodatabase.sql";
+          _dbHealth = DatabaseUtility.CreateDb(_connectionString, DatabaseName);
         }
-        _dbHealth = true;
+        else
+        {
+          _dbHealth = true;
+          Log.Debug("PicturedatabaseADO: database is connected.");
+        }
       }
       catch (Exception ex)
       {
@@ -117,7 +187,7 @@ namespace MediaPortal.Picture.Database
 
     public bool ClearDB()
     {
-      if (_connection == null)
+      if (!IsConnected())
       {
         return false;
       }
@@ -166,7 +236,7 @@ namespace MediaPortal.Picture.Database
         return -1;
       }
 
-      if (_connection == null)
+      if (!IsConnected())
       {
         return -1;
       }
@@ -175,7 +245,7 @@ namespace MediaPortal.Picture.Database
         int lPicId = -1;
         string strPic = strPicture;
         string strDateTaken = String.Empty;
-        RemoveInvalidChars(ref strPic);
+        DatabaseUtility.RemoveInvalidChars(ref strPic);
 
         var query = (from sql in _connection.pictures
                      where sql.strFile == strPic
@@ -339,7 +409,7 @@ namespace MediaPortal.Picture.Database
         if (!Util.Utils.IsPicture(strPicture))
           return;
 
-        if (_connection == null)
+        if (!IsConnected())
         {
           return;
         }
@@ -347,7 +417,7 @@ namespace MediaPortal.Picture.Database
         try
         {
           string strPic = strPicture;
-          RemoveInvalidChars(ref strPic);
+          DatabaseUtility.RemoveInvalidChars(ref strPic);
 
           var query = (from sql in _connection.pictures
                        where sql.strFile == strPic
@@ -376,7 +446,7 @@ namespace MediaPortal.Picture.Database
       if (!Util.Utils.IsPicture(strPicture))
         return -1;
 
-      if (_connection == null)
+      if (!IsConnected())
       {
         return -1;
       }
@@ -384,7 +454,7 @@ namespace MediaPortal.Picture.Database
       {
         string strPic = strPicture;
         int iRotation = 0;
-        RemoveInvalidChars(ref strPic);
+        DatabaseUtility.RemoveInvalidChars(ref strPic);
 
         var query = (from sql in _connection.pictures
                      where sql.strFile == strPic
@@ -420,14 +490,14 @@ namespace MediaPortal.Picture.Database
       if (!Util.Utils.IsPicture(strPicture))
         return;
 
-      if (_connection == null)
+      if (!IsConnected())
       {
         return;
       }
       try
       {
         string strPic = strPicture;
-        RemoveInvalidChars(ref strPic);
+        DatabaseUtility.RemoveInvalidChars(ref strPic);
 
         long lPicId = AddPicture(strPicture, iRotation);
         if (lPicId >= 0)
@@ -469,7 +539,7 @@ namespace MediaPortal.Picture.Database
       int Count = 0;
       lock (typeof(PictureDatabase))
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return 0;
         }
@@ -501,7 +571,7 @@ namespace MediaPortal.Picture.Database
       int Count = 0;
       lock (typeof(PictureDatabase))
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return 0;
         }
@@ -533,17 +603,16 @@ namespace MediaPortal.Picture.Database
       int Count = 0;
       lock (typeof(PictureDatabase))
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return 0;
         }
-
-        var query = (from sql in _connection.pictures
-                     where sql.strDateTaken.Substring(0, 7) == Year + "-" + Month
-                     select new { result = sql.strDateTaken.Substring(8, 2) }).Distinct().OrderBy(x => x.result).ToList();
-
         try
         {
+          var query = (from sql in _connection.pictures
+                       where sql.strDateTaken.Substring(0, 7) == Year + "-" + Month
+                       select new { result = sql.strDateTaken.Substring(8, 2) }).Distinct().OrderBy(x => x.result).ToList();
+
           if (query.Count != 0)
           {
             for (Count = 0; Count < query.Count; Count++)
@@ -566,18 +635,17 @@ namespace MediaPortal.Picture.Database
       int Count = 0;
       lock (typeof(PictureDatabase))
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return 0;
         }
-
-        var query = (from sql in _connection.pictures
-                     where sql.strDateTaken.StartsWith(Date)
-                     orderby sql.strDateTaken
-                     select sql).ToList();
-
         try
         {
+          var query = (from sql in _connection.pictures
+                       where sql.strDateTaken.StartsWith(Date)
+                       orderby sql.strDateTaken
+                       select sql).ToList();
+
           if (query.Count != 0)
           {
             for (Count = 0; Count < query.Count; Count++)
@@ -601,17 +669,16 @@ namespace MediaPortal.Picture.Database
       int Count = 0;
       lock (typeof(PictureDatabase))
       {
-        if (_connection == null)
+        if (!IsConnected())
         {
           return 0;
         }
-
-        var query = (from sql in _connection.pictures
-                     where sql.strDateTaken.StartsWith(Date)
-                     select sql).ToList();
-
         try
         {
+          var query = (from sql in _connection.pictures
+                       where sql.strDateTaken.StartsWith(Date)
+                       select sql).ToList();
+
           if (query != null)
           {
             Count = query.Count;
@@ -631,7 +698,7 @@ namespace MediaPortal.Picture.Database
     {
       get
       {
-        return _dbHealth;
+        return IsConnected();
       }
     }
 
@@ -645,10 +712,6 @@ namespace MediaPortal.Picture.Database
         }
         return "";
       }
-    }
-
-    void RemoveInvalidChars(ref string strTxt)
-    {
     }
 
   }

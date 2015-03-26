@@ -13,9 +13,9 @@
             <PropertyRef Name="idPicture" />
           </Key>
           <Property Name="idPicture" Type="int" Nullable="false" StoreGeneratedPattern="Identity" />
-          <Property Name="strFile" Type="text" />
+          <Property Name="strFile" Type="varchar" MaxLength="200" />
           <Property Name="iRotation" Type="int" />
-          <Property Name="strDateTaken" Type="text" />
+          <Property Name="strDateTaken" Type="varchar" MaxLength="200" />
         </EntityType>
       </Schema></edmx:StorageModels>
     <!-- CSDL content -->

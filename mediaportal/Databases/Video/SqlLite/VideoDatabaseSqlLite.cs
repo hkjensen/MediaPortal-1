@@ -100,6 +100,15 @@ namespace MediaPortal.Video.Database
       Log.Info("video database opened");
     }
 
+    public bool IsConnected()
+    {
+      if (m_db != null)
+      {
+        return true; ;
+      }
+      return false;
+    }
+
     // Added - Check if new columns exists in tables and add new columns if missing (old db upgrade)
     private void UpgradeDatabase()
     {
@@ -109,6 +118,7 @@ namespace MediaPortal.Video.Database
         {
           return;
         }
+
 
         #region actorinfo table
 

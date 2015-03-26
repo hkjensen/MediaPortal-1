@@ -28,6 +28,7 @@ namespace MediaPortal.Video.Database
   {
     void Dispose();
     bool ClearDB();
+    bool IsConnected();
     
     // Files & Path
     int AddFile(int lMovieId, int lPathId, string strFileName);

@@ -14,7 +14,7 @@
             <PropertyRef Name="idPath" />
           </Key>
           <Property Name="idPath" Type="int" Nullable="false" StoreGeneratedPattern="Identity" />
-          <Property Name="strPath" Type="text" />
+          <Property Name="strPath" Type="varchar" MaxLength="200" />
         </EntityType>
         <EntityType Name="tblsetting">
           <Key>
@@ -22,8 +22,8 @@
           </Key>
           <Property Name="idSetting" Type="int" Nullable="false" StoreGeneratedPattern="Identity" />
           <Property Name="idPath" Type="int" />
-          <Property Name="tagName" Type="text" />
-          <Property Name="tagValue" Type="text" />
+          <Property Name="tagName" Type="varchar" MaxLength="200" />
+          <Property Name="tagValue" Type="varchar" MaxLength="200" />
         </EntityType>
       </Schema></edmx:StorageModels>
     <!-- CSDL content -->

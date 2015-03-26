@@ -320,15 +320,13 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Video\VideoThumbBlacklistDBImpl.cs" />
+    <Compile Include="WakeUpUtils.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Model1.edmx.sql" />
-    <Content Include="Model2.edmx.sql" />
+    <EmbeddedResource Include="Video\Ado\create_videodatabase.sql" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.Config">
-      <SubType>Designer</SubType>
-    </None>
+    <None Include="App.Config" />
     <EntityDeploy Include="Model1.edmx">
       <Generator>EntityModelCodeGenerator</Generator>
       <LastGenOutput>Model1.Designer.cs</LastGenOutput>
@@ -343,11 +341,16 @@
     </EntityDeploy>
     <None Include="packages.config" />
     <None Include="Properties\DataSources\foldersettingEntities.datasource" />
-    <None Include="Properties\DataSources\picturedatabaseEntities1.datasource" />
     <None Include="Properties\DataSources\videodatabaseEntities.datasource" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Folders\ADO\create_folderdatabase.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Pictures\ADO\create_picturedatabase.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
