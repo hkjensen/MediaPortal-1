@@ -175,7 +175,7 @@ namespace MediaPortal.Picture.Database
         int lPicId = -1;
         string strPic = strPicture;
         string strDateTaken = String.Empty;
-        DatabaseUtility.RemoveInvalidChars(ref strPic);
+        RemoveInvalidChars(ref strPic);
 
         var query = (from sql in _connection.pictures
                      where sql.strFile == strPic
@@ -347,7 +347,7 @@ namespace MediaPortal.Picture.Database
         try
         {
           string strPic = strPicture;
-          DatabaseUtility.RemoveInvalidChars(ref strPic);
+          RemoveInvalidChars(ref strPic);
 
           var query = (from sql in _connection.pictures
                        where sql.strFile == strPic
@@ -384,7 +384,7 @@ namespace MediaPortal.Picture.Database
       {
         string strPic = strPicture;
         int iRotation = 0;
-        DatabaseUtility.RemoveInvalidChars(ref strPic);
+        RemoveInvalidChars(ref strPic);
 
         var query = (from sql in _connection.pictures
                      where sql.strFile == strPic
@@ -427,7 +427,7 @@ namespace MediaPortal.Picture.Database
       try
       {
         string strPic = strPicture;
-        DatabaseUtility.RemoveInvalidChars(ref strPic);
+        RemoveInvalidChars(ref strPic);
 
         long lPicId = AddPicture(strPicture, iRotation);
         if (lPicId >= 0)
@@ -645,6 +645,10 @@ namespace MediaPortal.Picture.Database
         }
         return "";
       }
+    }
+
+    void RemoveInvalidChars(ref string strTxt)
+    {
     }
 
   }

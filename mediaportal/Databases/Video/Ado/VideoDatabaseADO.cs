@@ -285,8 +285,8 @@ namespace MediaPortal.Video.Database.SqlServer
         string strPath, strFileName;
         strFilenameAndPath = strFilenameAndPath.Trim();
         DatabaseUtility.Split(strFilenameAndPath, out strPath, out strFileName);
-        DatabaseUtility.RemoveInvalidChars(ref strPath);
-        DatabaseUtility.RemoveInvalidChars(ref strFileName);
+        RemoveInvalidChars(ref strPath);
+        RemoveInvalidChars(ref strFileName);
         lPathId = GetPath(strPath);
 
         if (lPathId < 0)
@@ -393,7 +393,7 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         string cdlabel = GetDVDLabel(strPath);
-        DatabaseUtility.RemoveInvalidChars(ref cdlabel);
+        RemoveInvalidChars(ref cdlabel);
         strPath = strPath.Trim();
 
         var query = (from sql in _connection.paths
@@ -449,7 +449,7 @@ namespace MediaPortal.Video.Database.SqlServer
         {
           // It's a DVD! Any drive letter should be OK as long as the label and rest of the path matches
           cdlabel = GetDVDLabel(strPath);
-          DatabaseUtility.RemoveInvalidChars(ref cdlabel);
+          RemoveInvalidChars(ref cdlabel);
           strPath = strPath.Replace(strPath.Substring(0, 1), "_");
 
           var query = (from sql in _connection.paths
@@ -1052,7 +1052,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string strGenre = strGenre1.Trim();
-        DatabaseUtility.RemoveInvalidChars(ref strGenre);
+        RemoveInvalidChars(ref strGenre);
 
         if (_connection == null)
         {
@@ -1162,17 +1162,17 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
+        Log.Debug("videodatabaseADO:AddGenreToMovie begin {0} {1}", lMovieId, lGenreId);
         if (null == _connection)
         {
           return;
         }
-
-        var query = (from sql in _connection.genrelinkmovies
-                     where sql.idGenre == lGenreId && sql.idMovie == lGenreId
-                     select sql).FirstOrDefault();
-
-        if (query == null)
-        {
+//        var query = (from sql in _connection.genrelinkmovies
+//                     where sql.idGenre == lGenreId && sql.idMovie == lGenreId
+//                     select sql).FirstOrDefault();
+//
+//        if (query == null)
+//        {
           // doesnt exists, add it
           Databases.genrelinkmovie u = new Databases.genrelinkmovie()
           {
@@ -1181,7 +1181,7 @@ namespace MediaPortal.Video.Database.SqlServer
           };
           _connection.genrelinkmovies.AddObject(u);
           _connection.SaveChanges();
-        }
+//        }
       }
       catch (Exception ex)
       {
@@ -1195,7 +1195,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string genreFiltered = genre;
-        DatabaseUtility.RemoveInvalidChars(ref genreFiltered);
+        RemoveInvalidChars(ref genreFiltered);
 
         var query = (from sql in _connection.genres
                      where sql.strGenre == genreFiltered
@@ -1245,7 +1245,7 @@ namespace MediaPortal.Video.Database.SqlServer
             }
 
             strGenre = strGenre.Trim();
-            DatabaseUtility.RemoveInvalidChars(ref strGenre);
+            RemoveInvalidChars(ref strGenre);
             var query = (from sql in _connection.genres
                      where sql.strGenre == strGenre
                      select sql).FirstOrDefault();
@@ -1308,7 +1308,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string strUserGroup = userGroup.Trim();
-        DatabaseUtility.RemoveInvalidChars(ref strUserGroup);
+        RemoveInvalidChars(ref strUserGroup);
 
         if (_connection == null)
         {
@@ -1356,7 +1356,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string strUserGroup = userGroup.Trim();
-        DatabaseUtility.RemoveInvalidChars(ref strUserGroup);
+        RemoveInvalidChars(ref strUserGroup);
 
         if (_connection == null)
         {
@@ -1385,10 +1385,10 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string strUserGroup = userGroup.Trim();
-        DatabaseUtility.RemoveInvalidChars(ref strUserGroup);
+        RemoveInvalidChars(ref strUserGroup);
 
         string strGroupDescription = description.Trim();
-        DatabaseUtility.RemoveInvalidChars(ref strGroupDescription);
+        RemoveInvalidChars(ref strGroupDescription);
 
         if (_connection == null)
         {
@@ -1696,7 +1696,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string userGroupFiltered = userGroup;
-        DatabaseUtility.RemoveInvalidChars(ref userGroupFiltered);
+        RemoveInvalidChars(ref userGroupFiltered);
 
         var query = (from sql in _connection.usergroups
                      where sql.strGroup == userGroupFiltered
@@ -1798,8 +1798,8 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        DatabaseUtility.RemoveInvalidChars(ref strActorImdbId);
-        DatabaseUtility.RemoveInvalidChars(ref strActorName);
+        RemoveInvalidChars(ref strActorImdbId);
+        RemoveInvalidChars(ref strActorName);
 
         if (_connection == null)
         {
@@ -1946,7 +1946,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void GetActorByName(string strActorName, ArrayList actors)
     {
-      strActorName = DatabaseUtility.RemoveInvalidChars(strActorName);
+      //strActorName = RemoveInvalidChars(strActorName);
       if (_connection == null)
       {
         return;
@@ -2052,7 +2052,7 @@ namespace MediaPortal.Video.Database.SqlServer
           return;
         }
 
-        DatabaseUtility.RemoveInvalidChars(ref role);
+        RemoveInvalidChars(ref role);
 
         var query = (from sql in _connection.actorlinkmovies
                      where sql.idActor == lActorId && sql.idMovie == lMovieId
@@ -2112,7 +2112,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string actorFiltered = actorImdbId;
-        DatabaseUtility.RemoveInvalidChars(ref actorFiltered);
+        RemoveInvalidChars(ref actorFiltered);
 
         var query = (from sql in _connection.actors
                      where sql.IMDBActorID == actorFiltered
@@ -2366,11 +2366,11 @@ namespace MediaPortal.Video.Database.SqlServer
         VideoDatabase.GetMovieInfoById(details1.ID, ref existingDetails);
         // Cast
         string strLine = details1.Cast;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.Cast = strLine;
         // Director
         strLine = details1.Director;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.Director = strLine;
         // add director Id
         int lDirector = -1;
@@ -2427,27 +2427,27 @@ namespace MediaPortal.Video.Database.SqlServer
         }
         // Plot
         strLine = details1.Plot;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.Plot = strLine;
         // User Review
         strLine = details1.UserReview;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.UserReview = strLine;
         // Plot outline
         strLine = details1.PlotOutline;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.PlotOutline = strLine;
         // Tagline
         strLine = details1.TagLine;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.TagLine = strLine;
         // Cover
         strLine = details1.ThumbURL;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.ThumbURL = strLine;
         // Fanart
         strLine = details1.FanartURL;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.FanartURL = strLine;
         // Date Added
         details1.DateAdded = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
@@ -2467,18 +2467,18 @@ namespace MediaPortal.Video.Database.SqlServer
         }
         // Search string
         strLine = details1.SearchString;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.SearchString = strLine;
         // Title
         strLine = details1.Title.Trim();
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.Title = strLine;
         // SortTtitle
         strLine = details1.SortTitle.Trim();
 
         if (!string.IsNullOrEmpty(strLine))
         {
-          DatabaseUtility.RemoveInvalidChars(ref strLine);
+          RemoveInvalidChars(ref strLine);
           details1.SortTitle = strLine;
         }
         else
@@ -2487,37 +2487,37 @@ namespace MediaPortal.Video.Database.SqlServer
         }
         // Votes
         strLine = details1.Votes;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.Votes = strLine;
         // Writers
         strLine = details1.WritingCredits;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.WritingCredits = strLine;
         // Genres
         //Clear old genres link for movie
-        RemoveGenresForMovie(lMovieId);
+        //RemoveGenresForMovie(lMovieId);
         strLine = details1.Genre;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.Genre = strLine;
         // IMDB Movie ID
         strLine = details1.IMDBNumber;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.IMDBNumber = strLine;
         // MPAA Rating
         strLine = details1.MPARating;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.MPARating = strLine;
         // Studios
         strLine = details1.Studios;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.Studios = strLine;
         // Country
         strLine = details1.Country;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.Country = strLine;
         // Language
         strLine = details1.Language;
-        DatabaseUtility.RemoveInvalidChars(ref strLine);
+        RemoveInvalidChars(ref strLine);
         details1.Language = strLine;
         // Last update
         if (updateTimeStamp)
@@ -2542,7 +2542,8 @@ namespace MediaPortal.Video.Database.SqlServer
               if (!string.IsNullOrEmpty(strGenre.Trim()))
               {
                 int lGenreId = AddGenre(strGenre.Trim());
-                vecGenres.Add(lGenreId);
+                AddGenreToMovie(lMovieId, lGenreId);
+                //vecGenres.Add(lGenreId);
               }
             }
           }
@@ -2551,14 +2552,15 @@ namespace MediaPortal.Video.Database.SqlServer
             string strGenre = details.Genre;
             strGenre = strGenre.Trim();
             int lGenreId = AddGenre(strGenre);
-            vecGenres.Add(lGenreId);
+            AddGenreToMovie(lMovieId, lGenreId);
+//            vecGenres.Add(lGenreId);
           }
         }
 
-        for (int i = 0; i < vecGenres.Count; ++i)
-        {
-          AddGenreToMovie(lMovieId, (int)vecGenres[i]);
-        }
+//        for (int i = 0; i < vecGenres.Count; ++i)
+//        {
+//          AddGenreToMovie(lMovieId, (int)vecGenres[i]);
+//        }
 
         string strRating = String.Format("{0}", details1.Rating);
 
@@ -3576,8 +3578,8 @@ namespace MediaPortal.Video.Database.SqlServer
         string strPath, strFileName;
 
         DatabaseUtility.Split(strFilenameAndPath, out strPath, out strFileName);
-        DatabaseUtility.RemoveInvalidChars(ref strPath);
-        DatabaseUtility.RemoveInvalidChars(ref strFileName);
+        RemoveInvalidChars(ref strPath);
+        RemoveInvalidChars(ref strFileName);
 
         int lMovieId = GetMovie(strFilenameAndPath, false);
         if (lMovieId < 0)
@@ -3726,7 +3728,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void SetThumbURL(int lMovieId, string thumbURL)
     {
-      DatabaseUtility.RemoveInvalidChars(ref thumbURL);
+      RemoveInvalidChars(ref thumbURL);
       try
       {
         if (_connection == null)
@@ -3756,7 +3758,7 @@ namespace MediaPortal.Video.Database.SqlServer
     // Fanart add
     public void SetFanartURL(int lMovieId, string fanartURL)
     {
-      DatabaseUtility.RemoveInvalidChars(ref fanartURL);
+      RemoveInvalidChars(ref fanartURL);
       try
       {
         if (_connection == null)
@@ -3785,7 +3787,7 @@ namespace MediaPortal.Video.Database.SqlServer
     public void SetDVDLabel(int lMovieId, string strDVDLabel1)
     {
       string strDVDLabel = strDVDLabel1;
-      DatabaseUtility.RemoveInvalidChars(ref strDVDLabel);
+      RemoveInvalidChars(ref strDVDLabel);
       try
       {
         if (_connection == null)
@@ -3866,7 +3868,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string strGenre = strGenre1;
-        DatabaseUtility.RemoveInvalidChars(ref strGenre);
+        RemoveInvalidChars(ref strGenre);
         movies.Clear();
 
         if (_connection == null)
@@ -3875,9 +3877,9 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                     join s2 in _connection.paths on s1.idPath equals s2.idPath
-                     join s3 in _connection.genrelinkmovies on s1.idMovie equals s3.idMovie
+                     // join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+                     // join s2 in _connection.paths on s1.idPath equals s2.idPath
+                     join s3 in _connection.genrelinkmovies on sql.idMovie equals s3.idMovie
                      join s4 in _connection.genres on s3.idGenre equals s4.idGenre
                      where s4.strGenre == strGenre
                      select sql).ToList();
@@ -3906,7 +3908,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string strGenre = strGenre1;
-        DatabaseUtility.RemoveInvalidChars(ref strGenre);
+        RemoveInvalidChars(ref strGenre);
         movies.Clear();
 
         if (_connection == null)
@@ -3955,7 +3957,9 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         var query = (from sql in _connection.movieinfoes
-                     where sql.strGenre == strGenre //|| sql.strGenre.Contains(strGenre) //like?
+                     join s3 in _connection.genrelinkmovies on sql.idMovie equals s3.idMovie
+                     join s4 in _connection.genres on s3.idGenre equals s4.idGenre
+                     where s4.strGenre == strGenre
                      orderby sql.strTitle ascending
                      select sql).ToList();
 
@@ -3981,7 +3985,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        DatabaseUtility.RemoveInvalidChars(ref strUserGroup);
+        RemoveInvalidChars(ref strUserGroup);
         movies.Clear();
 
         if (_connection == null)
@@ -4056,7 +4060,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        DatabaseUtility.RemoveInvalidChars(ref strUserGroup);
+        RemoveInvalidChars(ref strUserGroup);
         movies.Clear();
 
         if (_connection == null)
@@ -4099,7 +4103,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string strActor = strActor1;
-        DatabaseUtility.RemoveInvalidChars(ref strActor);
+        RemoveInvalidChars(ref strActor);
         movies.Clear();
 
         if (_connection == null)
@@ -4139,7 +4143,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string strActor = strActor1;
-        DatabaseUtility.RemoveInvalidChars(ref strActor);
+        RemoveInvalidChars(ref strActor);
         movies.Clear();
 
         if (_connection == null)
@@ -4375,7 +4379,7 @@ namespace MediaPortal.Video.Database.SqlServer
           }
         }
 
-        DatabaseUtility.RemoveInvalidChars(ref strPath);
+        RemoveInvalidChars(ref strPath);
         movies.Clear();
 
         if (_connection == null)
@@ -4432,7 +4436,7 @@ namespace MediaPortal.Video.Database.SqlServer
           }
         }
 
-        DatabaseUtility.RemoveInvalidChars(ref strPath);
+        RemoveInvalidChars(ref strPath);
         movies.Clear();
 
         if (_connection == null)
@@ -4794,14 +4798,14 @@ namespace MediaPortal.Video.Database.SqlServer
           Databases.actorinfo obj = new Databases.actorinfo()
           {
             idActor = idActor,
-            dateofbirth = DatabaseUtility.RemoveInvalidChars(actor.DateOfBirth),
-            placeofbirth = DatabaseUtility.RemoveInvalidChars(actor.PlaceOfBirth),
-            minibio = DatabaseUtility.RemoveInvalidChars(actor.MiniBiography),
-            biography = DatabaseUtility.RemoveInvalidChars(actor.Biography),
-            thumbURL = DatabaseUtility.RemoveInvalidChars(actor.ThumbnailUrl),
-            IMDBActorID = DatabaseUtility.RemoveInvalidChars(actor.IMDBActorID),
-            dateofdeath = DatabaseUtility.RemoveInvalidChars(actor.DateOfDeath),
-            placeofdeath = DatabaseUtility.RemoveInvalidChars(actor.PlaceOfDeath),
+            dateofbirth = RemoveInvalidChars(actor.DateOfBirth),
+            placeofbirth = RemoveInvalidChars(actor.PlaceOfBirth),
+            minibio = RemoveInvalidChars(actor.MiniBiography),
+            biography = RemoveInvalidChars(actor.Biography),
+            thumbURL = RemoveInvalidChars(actor.ThumbnailUrl),
+            IMDBActorID = RemoveInvalidChars(actor.IMDBActorID),
+            dateofdeath = RemoveInvalidChars(actor.DateOfDeath),
+            placeofdeath = RemoveInvalidChars(actor.PlaceOfDeath),
             lastupdate = DateTime.Now
           };
           _connection.actorinfoes.AddObject(obj);
@@ -4811,14 +4815,14 @@ namespace MediaPortal.Video.Database.SqlServer
         {
           // exists, modify it
           
-          query.dateofbirth = DatabaseUtility.RemoveInvalidChars(actor.DateOfBirth);
-          query.placeofbirth = DatabaseUtility.RemoveInvalidChars(actor.PlaceOfBirth);
-          query.minibio = DatabaseUtility.RemoveInvalidChars(actor.MiniBiography);
-          query.biography = DatabaseUtility.RemoveInvalidChars(actor.Biography);
-          query.thumbURL = DatabaseUtility.RemoveInvalidChars(actor.ThumbnailUrl);
-          query.IMDBActorID = DatabaseUtility.RemoveInvalidChars(actor.IMDBActorID);
-          query.dateofdeath =  DatabaseUtility.RemoveInvalidChars(actor.DateOfDeath);
-          query.placeofdeath = DatabaseUtility.RemoveInvalidChars(actor.PlaceOfDeath);
+          query.dateofbirth = RemoveInvalidChars(actor.DateOfBirth);
+          query.placeofbirth = RemoveInvalidChars(actor.PlaceOfBirth);
+          query.minibio = RemoveInvalidChars(actor.MiniBiography);
+          query.biography = RemoveInvalidChars(actor.Biography);
+          query.thumbURL = RemoveInvalidChars(actor.ThumbnailUrl);
+          query.IMDBActorID = RemoveInvalidChars(actor.IMDBActorID);
+          query.dateofdeath =  RemoveInvalidChars(actor.DateOfDeath);
+          query.placeofdeath = RemoveInvalidChars(actor.PlaceOfDeath);
           query.lastupdate = DateTime.Now;
           _connection.SaveChanges();
           RemoveActorInfoMovie(idActor);
@@ -4839,10 +4843,15 @@ namespace MediaPortal.Video.Database.SqlServer
       return;
     }
 
+    private string RemoveInvalidChars(string p)
+    {
+        throw new NotImplementedException();
+    }
+
     public void AddActorInfoMovie(int idActor, IMDBActor.IMDBActorMovie movie)
     {
-      string movieTitle = DatabaseUtility.RemoveInvalidChars(movie.MovieTitle);
-      string movieRole = DatabaseUtility.RemoveInvalidChars(movie.Role);
+      string movieTitle = RemoveInvalidChars(movie.MovieTitle);
+      string movieRole = RemoveInvalidChars(movie.Role);
 
       try
       {
@@ -5074,7 +5083,7 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         path = path.Trim();
-        DatabaseUtility.RemoveInvalidChars(ref path);
+        RemoveInvalidChars(ref path);
 
         string strFileLength = fileInfo.Length.ToString();
       
@@ -5120,7 +5129,7 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         path = path.Trim();
-        DatabaseUtility.RemoveInvalidChars(ref path);
+        RemoveInvalidChars(ref path);
         
         var query = (from sql in _connection.videothumbblists
                      where sql.strPath == path
@@ -5190,7 +5199,7 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         path = path.Trim();
-        DatabaseUtility.RemoveInvalidChars(ref path);
+        RemoveInvalidChars(ref path);
 
         var query = (from sql in _connection.videothumbblists
                      where sql.strPath == path
@@ -7226,6 +7235,10 @@ namespace MediaPortal.Video.Database.SqlServer
     }
 
     public void RevertFlushTransactionsToDisk()
+    {
+    }
+
+    public void RemoveInvalidChars(ref string strTxt)
     {
     }
   }

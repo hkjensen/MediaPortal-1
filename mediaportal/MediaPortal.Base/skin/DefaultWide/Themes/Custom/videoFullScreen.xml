@@ -37,7 +37,7 @@
       <posX>109</posX>
       <posY>581</posY>
       <width>739</width>
-      <label>#Play.Current.Title #Play.Current.IMDBNumber.png</label>
+      <label>#Play.Current.Title</label>
       <align>left</align>
       <font>font16</font>
       <textcolor>ivory</textcolor>

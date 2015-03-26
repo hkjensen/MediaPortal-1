@@ -182,8 +182,8 @@ namespace Databases.Folders.SqlServer
       {
         string pathFiltered = Utils.RemoveTrailingSlash(path);
         string keyFiltered = Key;
-        DatabaseUtility.RemoveInvalidChars(ref pathFiltered);
-        DatabaseUtility.RemoveInvalidChars(ref keyFiltered);
+        RemoveInvalidChars(ref pathFiltered);
+        RemoveInvalidChars(ref keyFiltered);
 
         int PathId = AddPath(pathFiltered);
         if (PathId < 0)
@@ -228,8 +228,8 @@ namespace Databases.Folders.SqlServer
       {
         string strPathFiltered = Utils.RemoveTrailingSlash(path);
         string KeyFiltered = key;
-        DatabaseUtility.RemoveInvalidChars(ref strPathFiltered);
-        DatabaseUtility.RemoveInvalidChars(ref KeyFiltered);
+        RemoveInvalidChars(ref strPathFiltered);
+        RemoveInvalidChars(ref KeyFiltered);
 
         int PathId = AddPath(strPathFiltered);
         if (PathId < 0)
@@ -253,7 +253,7 @@ namespace Databases.Folders.SqlServer
             {
               string ValueText = reader.ReadToEnd();
               string ValueTextFiltered = ValueText;
-              DatabaseUtility.RemoveInvalidChars(ref ValueTextFiltered);
+              RemoveInvalidChars(ref ValueTextFiltered);
 
               tblsetting obj = new tblsetting()
               {
@@ -333,8 +333,8 @@ namespace Databases.Folders.SqlServer
       {
         string strPathFiltered = Utils.RemoveTrailingSlash(path);
         string KeyFiltered = key;
-        DatabaseUtility.RemoveInvalidChars(ref strPathFiltered);
-        DatabaseUtility.RemoveInvalidChars(ref KeyFiltered);
+        RemoveInvalidChars(ref strPathFiltered);
+        RemoveInvalidChars(ref KeyFiltered);
 
         int PathId = AddPath(strPathFiltered);
         if (PathId < 0)
@@ -417,5 +417,10 @@ namespace Databases.Folders.SqlServer
         return _dbHealth;
       }
     }
+
+    void RemoveInvalidChars(ref string strTxt)
+    {
+    }
+
   }
 }
