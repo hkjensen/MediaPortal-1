@@ -249,7 +249,7 @@ namespace MediaPortal.Video.Database.SqlServer
                      select sql).FirstOrDefault();*/
 
         string strSQL = String.Format("SELECT * FROM files WHERE idmovie={0} AND idpath={1} AND strFileName = '{2}'",
-                                lMovieId, lPathId, strFileName);
+                                lMovieId, lPathId, strFileName.Replace("'","''"));
 
         var query = _connection.ExecuteStoreQuery<Databases.file>(strSQL).FirstOrDefault();
 
@@ -275,7 +275,7 @@ namespace MediaPortal.Video.Database.SqlServer
                       select sql).FirstOrDefault();*/
 
         string strInsertSQL = String.Format("INSERT INTO files (idFile, idMovie,idPath, strFileName) VALUES(null, {0},{1},'{2}')",
-                       lMovieId, lPathId, strFileName);
+                       lMovieId, lPathId, strFileName.Replace("'","''"));
 
         _connection.ExecuteStoreCommand(strInsertSQL);
 
@@ -341,8 +341,8 @@ namespace MediaPortal.Video.Database.SqlServer
         string strPath, strFileName;
         strFilenameAndPath = strFilenameAndPath.Trim();
         DatabaseUtility.Split(strFilenameAndPath, out strPath, out strFileName);
-        RemoveInvalidChars(ref strPath);
-        RemoveInvalidChars(ref strFileName);
+        DatabaseUtility.RemoveInvalidChars(ref strPath);
+        DatabaseUtility.RemoveInvalidChars(ref strFileName);
         lPathId = GetPath(strPath);
         strFileName = strFileName.Replace("\\", "\\\\").Trim();
         if (lPathId < 0)
@@ -472,8 +472,8 @@ namespace MediaPortal.Video.Database.SqlServer
                      where sql.strPath == strPath && sql.cdlabel == cdlabel
                      select sql).FirstOrDefault();*/
 
-        string strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}' AND cdlabel like '{1}'", strPath,
-                              cdlabel);
+        string strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}' AND cdlabel like '{1}'", strPath.Replace("'", "''"),
+                              cdlabel.Replace("'", "''"));
 
         var query = _connection.ExecuteStoreQuery<Databases.path>(strSQL).FirstOrDefault();
 
@@ -488,7 +488,7 @@ namespace MediaPortal.Video.Database.SqlServer
           _connection.paths.AddObject(path);
           _connection.SaveChanges();*/
 
-          string strInsertSQL = String.Format("INSERT INTO Path (strPath, cdlabel) VALUES('{0}', '{1}')", strPath,
+            string strInsertSQL = String.Format("INSERT INTO Path (strPath, cdlabel) VALUES('{0}', '{1}')", strPath.Replace("'", "''"),
                        cdlabel);
 
           _connection.ExecuteStoreCommand(strInsertSQL);
@@ -538,11 +538,11 @@ namespace MediaPortal.Video.Database.SqlServer
                        where sql.strPath == strPath && sql.cdlabel == cdlabel
                        select sql).FirstOrDefault();*/
 
-          strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}' AND cdlabel LIKE '{1}'", strPath, cdlabel);
+          strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}' AND cdlabel LIKE '{1}'", strPath.Replace("'", "''"), cdlabel.Replace("'", "\'"));
         }
         else
         {
-          strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}'", strPath);
+          strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}'", strPath.Replace("'", "''"));
         }
 
         var query = _connection.ExecuteStoreQuery<Databases.path>(strSQL).FirstOrDefault();
@@ -1102,7 +1102,7 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         string strGenre = strGenre1.Trim();
-        RemoveInvalidChars(ref strGenre);
+        DatabaseUtility.RemoveInvalidChars(ref strGenre);
 
         if (!IsConnected())
         {
@@ -1995,7 +1995,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
     public void GetActorByName(string strActorName, ArrayList actors)
     {
-      strActorName = RemoveInvalidChars(strActorName);
+      strActorName = DatabaseUtility.RemoveInvalidChars(strActorName);
       if (!IsConnected())
       {
         return;
@@ -2040,7 +2040,7 @@ namespace MediaPortal.Video.Database.SqlServer
                      where sql.strActor == strActorName //|| sql.strActor.Contains(strActorName)
                      select sql).FirstOrDefault();*/
 
-        string strSQL = string.Format("SELECT * FROM actors WHERE strActor LIKE '%" + strActorName + "%'");
+        string strSQL = string.Format("SELECT * FROM actors WHERE strActor LIKE '%" + strActorName.Replace("'","''") + "%'");
 
         var query = _connection.ExecuteStoreQuery<Databases.actor>(strSQL).FirstOrDefault();
 
@@ -3934,9 +3934,9 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
-                                           join s3 in _connection.genrelinkmovies on s1.idMovie equals s3.idMovie
+//                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+//                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
+                                           join s3 in _connection.genrelinkmovies on sql.idMovie equals s3.idMovie
                                            join s4 in _connection.genres on s3.idGenre equals s4.idGenre
                                            where s4.strGenre == strGenre
                                            select sql).ToList();
@@ -3974,9 +3974,9 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         var query = (from sql in _connection.movieinfoes
-                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                     join s2 in _connection.paths on s1.idPath equals s2.idPath
-                     join s3 in _connection.genrelinkmovies on s1.idMovie equals s3.idMovie
+//                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+//                     join s2 in _connection.paths on s1.idPath equals s2.idPath
+                     join s3 in _connection.genrelinkmovies on sql.idMovie equals s3.idMovie
                      join s4 in _connection.genres on s3.idGenre equals s4.idGenre
                      where s4.strGenre == strGenre
                      select sql).OrderBy(x => x.idMovie).ToList();
@@ -4014,7 +4014,9 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         var query = (from sql in _connection.movieinfoes
-                     where sql.strGenre == strGenre //|| sql.strGenre.Contains(strGenre) //like?
+                     join s3 in _connection.genrelinkmovies on sql.idMovie equals s3.idMovie
+                     join s4 in _connection.genres on s3.idGenre equals s4.idGenre
+                     where s4.strGenre == strGenre
                      orderby sql.strTitle ascending
                      select sql).ToList();
 
@@ -4049,9 +4051,9 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
-                                           join s3 in _connection.usergrouplinkmovies on s1.idMovie equals s3.idMovie
+//                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+//                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
+                                           join s3 in _connection.usergrouplinkmovies on sql.idMovie equals s3.idMovie
                                            join s4 in _connection.usergroups on s3.idGroup equals s4.idGroup
                                            where s4.strGroup == strUserGroup
                                            orderby sql.strTitle ascending
@@ -4124,9 +4126,9 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         var query = (from sql in _connection.movieinfoes
-                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                     join s2 in _connection.paths on s1.idPath equals s2.idPath
-                     join s3 in _connection.usergrouplinkmovies on s1.idMovie equals s3.idMovie
+//                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+//                     join s2 in _connection.paths on s1.idPath equals s2.idPath
+                     join s3 in _connection.usergrouplinkmovies on sql.idMovie equals s3.idMovie
                      join s4 in _connection.usergroups on s3.idGroup equals s4.idGroup
                      where s4.strGroup == strUserGroup
                      select sql).OrderBy(x => x.idMovie).ToList();
@@ -4167,9 +4169,9 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         List<Databases.movieinfo> query = (from sql in _connection.movieinfoes
-                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
-                                           join s3 in _connection.actorlinkmovies on s1.idMovie equals s3.idMovie
+//                                           join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+//                                           join s2 in _connection.paths on s1.idPath equals s2.idPath
+                                           join s3 in _connection.actorlinkmovies on sql.idMovie equals s3.idMovie
                                            join s4 in _connection.actors on s3.idActor equals s4.idActor
                                            where s4.strActor == strActor
                                            select sql).ToList();
@@ -4207,9 +4209,9 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         var query = (from sql in _connection.movieinfoes
-                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
-                     join s2 in _connection.paths on s1.idPath equals s2.idPath
-                     join s3 in _connection.actorlinkmovies on s1.idMovie equals s3.idMovie
+//                     join s1 in _connection.movies on sql.idMovie equals s1.idMovie
+//                     join s2 in _connection.paths on s1.idPath equals s2.idPath
+                     join s3 in _connection.actorlinkmovies on sql.idMovie equals s3.idMovie
                      join s4 in _connection.actors on s3.idActor equals s4.idActor
                      where s4.strActor == strActor
                      select sql).OrderBy(x => x.idMovie).ToList();
@@ -6085,7 +6087,7 @@ namespace MediaPortal.Video.Database.SqlServer
             string thumbTbnFile = string.Empty;
             string thumbFolderJpgFile = string.Empty;
             string thumbFolderTbnFile = string.Empty;
-            string titleExt = movie.Title + "{" + id + "}";
+            string titleExt = Util.Utils.GetCoverFilename(id, movie.IMDBNumber, movie.Title);
             string jpgExt = @".jpg";
             string tbnExt = @".tbn";
             string folderJpg = @"\folder.jpg";
@@ -7294,7 +7296,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
     }
 
-    static string RemoveInvalidChars(string aStringToClean)
+    private static string RemoveInvalidChars(string aStringToClean)
     {
         string result = aStringToClean;
         RemoveInvalidChars(ref result);
