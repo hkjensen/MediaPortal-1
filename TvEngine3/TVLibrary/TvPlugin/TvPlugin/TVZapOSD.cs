@@ -418,7 +418,7 @@ namespace TvPlugin
 
           if (lblOnTvNow != null)
           {
-            lblOnTvNow.Label = prog.Title;
+              lblOnTvNow.Label = TVUtil.GetDisplayTitle(prog);
           }
           if (lblStartTime != null)
           {
@@ -438,7 +438,7 @@ namespace TvPlugin
           {
             if (lblOnTvNext != null)
             {
-              lblOnTvNext.Label = prog.Title;
+                lblOnTvNext.Label = TVUtil.GetDisplayTitle(prog);
             }
           }
         }
