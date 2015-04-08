@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using MediaPortal.Common.Utils;
 
 // General Information about an assembly is controlled through the following 
-// set of attributes. Change these attribute values to modify the information
+// set of attributes. Change these attribute valuesD:\develop\MediaPortal-1\TvEngine3\TVLibrary\Plugins\MediaPortalIptvFilterAndUrlSourceSplitter\Properties\AssemblyInfo.cs to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("MediaPortalIptvFilterAndUrlSourceSplitter")]
 [assembly: AssemblyDescription("")]
