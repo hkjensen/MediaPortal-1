@@ -110,7 +110,7 @@ namespace MediaPortal.Database
         // Finally, start up the server
         Log.Info("WakeUpServer: WOL - Start the {0} server", hostName);
 
-        if (WakeupSystem(hwAddress, hostName, wolTimeout))
+        if (wakeOnLanManager.WakeupSystem(hwAddress, hostName, wolTimeout))
         {
           Log.Info("WakeUpServer: WOL - The {0} server started successfully!", hostName);
           return true;
