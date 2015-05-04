@@ -657,6 +657,10 @@ namespace MediaPortal.GUI.Video
           FolderSetting folderSetting = new FolderSetting();
           folderSetting.UpdateFolders(-1, CurrentSortAsc, (int)CurrentLayout);
           break;
+
+        case GUIMessage.MessageType.GUI_MSG_REFRESH_MEDIAINFO:
+          SelectCurrentItem();
+          break;
       }
       return base.OnMessage(message);
     }
@@ -2901,7 +2905,9 @@ namespace MediaPortal.GUI.Video
         mInfo.SetMediaInfoProperties(file, true);
         mInfo.SetDurationProperty(movieId);
         IMDBMovie.SetMovieData(item);
-        SelectCurrentItem();
+
+        GUIMessage msg = new GUIMessage(GUIMessage.MessageType.GUI_MSG_REFRESH_MEDIAINFO, 0, 0, 0, 0, 0, 0);
+        GUIWindowManager.SendMessage(msg);
       }
     }
 
