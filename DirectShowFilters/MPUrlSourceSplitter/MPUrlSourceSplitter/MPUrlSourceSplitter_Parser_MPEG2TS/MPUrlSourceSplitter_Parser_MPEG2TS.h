@@ -30,6 +30,7 @@
 #include "ProgramAssociationParserContext.h"
 #include "TransportStreamProgramMapParserContextCollection.h"
 #include "SectionCollection.h"
+#include "ConditionalAccessParserContext.h"
 
 #define MP_URL_SOURCE_SPLITTER_PARSER_MPEG2TS_FLAG_NONE               PARSER_PLUGIN_FLAG_NONE
 
@@ -54,6 +55,8 @@
 #define MP_URL_SOURCE_SPLITTER_PARSER_MPEG2TS_FLAG_LAST               (PARSER_PLUGIN_FLAG_LAST + 11)
 
 #define PARSER_NAME                                                   L"PARSER_MPEG2TS"
+
+#define PARSER_STORE_FILE_NAME_PART                                   L"mpurlsourcesplitter_parser_mpeg2ts"
 
 class CMPUrlSourceSplitter_Parser_Mpeg2TS : public CParserPlugin
 {
@@ -98,6 +101,10 @@ public:
   // tests if end of stream is reached (but it can be with gaps)
   // @return : true if end of stream reached, false otherwise
   virtual bool IsEndOfStreamReached(void);
+
+  // tests if connection was lost and can't be opened again
+  // @return : true if connection was lost and can't be opened again, false otherwise
+  virtual bool IsConnectionLostCannotReopen(void);
 
   // tests if stream is IPTV compatible
   // @return : true if stream is IPTV compatible, false otherwise
@@ -207,6 +214,8 @@ protected:
   CProgramAssociationParserContext *programAssociationParserContext;
   // holds collection of transport stream program map (PMT) parser with transport stream program map section context
   CTransportStreamProgramMapParserContextCollection *transportStreamProgramMapParserContextCollection;
+  // holds conditional access (CA) parser with conditional access section context
+  CConditionalAccessParserContext *conditionalAccessParserContext;
 
   // holds new stream identification (transport stream ID, program number and program map PID)
   unsigned int transportStreamId;
@@ -223,10 +232,9 @@ protected:
 
   /* methods */
 
-  // gets store file name
-  // @param extension : the extension of store file
-  // @return : store file name or NULL if error
-  virtual wchar_t *GetStoreFile(const wchar_t *extension);
+  // gets store file name part
+  // @return : store file name part or NULL if error
+  virtual const wchar_t *GetStoreFileNamePart(void);
 
   // gets byte position in buffer
   // it is always reset on seek
