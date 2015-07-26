@@ -25,14 +25,12 @@
 
 #include "ParserContext.h"
 #include "TransportStreamProgramMapParser.h"
-#include "TransportStreamProgramMapSectionContext.h"
-#include "ProgramElementCollection.h"
+#include "TransportStreamProgramMapParserKnownSectionContextCollection.h"
+#include "FilterProgramNumberCollection.h"
 
 #define TRANSPORT_STREAM_PROGRAM_MAP_PARSER_CONTEXT_FLAG_NONE                       PARSER_CONTEXT_FLAG_NONE
 
-#define TRANSPORT_STREAM_PROGRAM_MAP_PARSER_CONTEXT_FLAG_FILTER_PROGRAM_ELEMENTS    (1 << (PARSER_CONTEXT_FLAG_LAST + 0))
-
-#define TRANSPORT_STREAM_PROGRAM_MAP_PARSER_CONTEXT_FLAG_LAST                       (PARSER_CONTEXT_FLAG_LAST + 1)
+#define TRANSPORT_STREAM_PROGRAM_MAP_PARSER_CONTEXT_FLAG_LAST                       (PARSER_CONTEXT_FLAG_LAST + 0)
 
 class CTransportStreamProgramMapParserContext : public CParserContext
 {
@@ -46,33 +44,32 @@ public:
   // @return : parser or NULL if no parser
   virtual CTransportStreamProgramMapParser *GetParser(void);
 
-  // gets section context associated with parser context
-  // @return : section context or NULL if no section context
-  virtual CTransportStreamProgramMapSectionContext *GetSectionContext(void);
-
-  // gets collection of program elements to leave in transport stream program map
-  // @return : collection of program elements to leave in transport stream program map
-  virtual CProgramElementCollection *GetLeaveProgramElements(void);
+  // get filter program number collection
+  // @return : filter program number collection
+  CFilterProgramNumberCollection *GetFilterProgramNumbers(void);
 
   /* set methods */
 
-  // sets filter program elements flag
-  // @param filterProgramElements : true if filter program elements, false otherwise
-  virtual void SetFilterProgramElements(bool filterProgramElements);
+  // sets section as known section
+  // @param section : the section to set as known
+  // @return : S_OK if successful, error code otherwise
+  virtual HRESULT SetKnownSection(CSection *section);
 
   /* other methods */
 
-  // tests if filter program elements flag is set
-  // @return : true if filter program elements flag is set, false otherwise
-  virtual bool IsFilterProgramElements(void);
+  // clears current parser context instance to default state
+  virtual void Clear(void);
 
-  // creates new section context
-  // @return : S_OK if successful, error code otherwise
-  virtual HRESULT CreateSectionContext(void);
+  // check if section is known
+  // @param section : the section to check
+  // @return : true if section is known, false otherwise
+  virtual bool IsKnownSection(CSection *section);
 
 protected:
-  // holds program elements to leave in transport stream program map
-  CProgramElementCollection *leaveProgramElements;
+  // holds known sections
+  CTransportStreamProgramMapParserKnownSectionContextCollection *knownSections;
+  // holds filter program numbers with program elements to leave
+  CFilterProgramNumberCollection *filterProgramNumbers;
 
   /* methods */
 };

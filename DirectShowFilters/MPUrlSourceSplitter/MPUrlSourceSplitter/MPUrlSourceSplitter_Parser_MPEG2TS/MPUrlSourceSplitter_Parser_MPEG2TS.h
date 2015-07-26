@@ -31,6 +31,7 @@
 #include "TransportStreamProgramMapParserContextCollection.h"
 #include "SectionCollection.h"
 #include "ConditionalAccessParserContext.h"
+#include "SectionMultiplexerCollection.h"
 
 #define MP_URL_SOURCE_SPLITTER_PARSER_MPEG2TS_FLAG_NONE               PARSER_PLUGIN_FLAG_NONE
 
@@ -52,7 +53,9 @@
 #define MP_URL_SOURCE_SPLITTER_PARSER_MPEG2TS_FLAG_FOUND_PAT                        (1 << (PARSER_PLUGIN_FLAG_LAST + 9))
 #define MP_URL_SOURCE_SPLITTER_PARSER_MPEG2TS_FLAG_FOUND_PMT                        (1 << (PARSER_PLUGIN_FLAG_LAST + 10))
 
-#define MP_URL_SOURCE_SPLITTER_PARSER_MPEG2TS_FLAG_LAST               (PARSER_PLUGIN_FLAG_LAST + 11)
+#define MP_URL_SOURCE_SPLITTER_PARSER_MPEG2TS_NO_MORE_PROTOCOL_DATA                 (1 << (PARSER_PLUGIN_FLAG_LAST + 11))
+
+#define MP_URL_SOURCE_SPLITTER_PARSER_MPEG2TS_FLAG_LAST               (PARSER_PLUGIN_FLAG_LAST + 12)
 
 #define PARSER_NAME                                                   L"PARSER_MPEG2TS"
 
@@ -210,12 +213,14 @@ protected:
   // holds discontinuity parser
   CDiscontinuityParser *discontinuityParser;
 
-  // holds program association (PAT) parser with program association section context
+  // holds program association (PAT) parser
   CProgramAssociationParserContext *programAssociationParserContext;
-  // holds collection of transport stream program map (PMT) parser with transport stream program map section context
+  // holds collection of transport stream program map (PMT) parser
   CTransportStreamProgramMapParserContextCollection *transportStreamProgramMapParserContextCollection;
-  // holds conditional access (CA) parser with conditional access section context
+  // holds conditional access (CA) parser
   CConditionalAccessParserContext *conditionalAccessParserContext;
+  // holds mutliplexers for reconstructing stream
+  CSectionMultiplexerCollection *multiplexers;
 
   // holds new stream identification (transport stream ID, program number and program map PID)
   unsigned int transportStreamId;

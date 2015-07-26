@@ -20,24 +20,19 @@ along with MediaPortal 2.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#ifndef __CONDITIONAL_ACCESS_SECTION_PACKET_CONTEXT_COLLECTION_DEFINED
-#define __CONDITIONAL_ACCESS_SECTION_PACKET_CONTEXT_COLLECTION_DEFINED
+#ifndef __FILTER_PROGRAM_NUMBER_COLLECTION_DEFINED
+#define __FILTER_PROGRAM_NUMBER_COLLECTION_DEFINED
 
-#include "TsPacketContextCollection.h"
-#include "ConditionalAccessSectionPacketContext.h"
+#include "Collection.h"
+#include "FilterProgramNumber.h"
 
-class CConditionalAccessSectionPacketContextCollection : public CTsPacketContextCollection
+class CFilterProgramNumberCollection : public CCollection<CFilterProgramNumber>
 {
 public:
-  CConditionalAccessSectionPacketContextCollection(HRESULT *result);
-  virtual ~CConditionalAccessSectionPacketContextCollection(void);
+  CFilterProgramNumberCollection(HRESULT *result);
+  virtual ~CFilterProgramNumberCollection();
 
   /* get methods */
-
-  // get the item from collection with specified index
-  // @param index : the index of item to find
-  // @return : the reference to item or NULL if not find
-  virtual CConditionalAccessSectionPacketContext *GetItem(unsigned int index);
 
   /* set methods */
 
@@ -46,6 +41,11 @@ public:
 protected:
 
   /* methods */
+
+  // clones specified item
+  // @param item : the item to clone
+  // @return : deep clone of item or NULL if not implemented
+  virtual CFilterProgramNumber *Clone(CFilterProgramNumber *item);
 };
 
 #endif

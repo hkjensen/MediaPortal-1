@@ -25,21 +25,25 @@
 CTransportStreamProgramMapParserContext::CTransportStreamProgramMapParserContext(HRESULT *result, uint16_t pid)
   : CParserContext(result)
 {
-  this->leaveProgramElements = NULL;
+  this->knownSections = NULL;
+  this->filterProgramNumbers = NULL;
 
   if ((result != NULL) && (SUCCEEDED(*result)))
   {
     this->parser = new CTransportStreamProgramMapParser(result, pid);
-    this->leaveProgramElements = new CProgramElementCollection(result);
+    this->knownSections = new CTransportStreamProgramMapParserKnownSectionContextCollection(result);
+    this->filterProgramNumbers = new CFilterProgramNumberCollection(result);
 
     CHECK_POINTER_HRESULT(*result, this->parser, *result, E_OUTOFMEMORY);
-    CHECK_POINTER_HRESULT(*result, this->leaveProgramElements, *result, E_OUTOFMEMORY);
+    CHECK_POINTER_HRESULT(*result, this->knownSections, *result, E_OUTOFMEMORY);
+    CHECK_POINTER_HRESULT(*result, this->filterProgramNumbers, *result, E_OUTOFMEMORY);
   }
 }
 
 CTransportStreamProgramMapParserContext::~CTransportStreamProgramMapParserContext(void)
 {
-  FREE_MEM_CLASS(this->leaveProgramElements);
+  FREE_MEM_CLASS(this->knownSections);
+  FREE_MEM_CLASS(this->filterProgramNumbers);
 }
 
 /* get methods */
@@ -49,40 +53,48 @@ CTransportStreamProgramMapParser *CTransportStreamProgramMapParserContext::GetPa
   return (CTransportStreamProgramMapParser *)__super::GetParser();
 }
 
-CTransportStreamProgramMapSectionContext *CTransportStreamProgramMapParserContext::GetSectionContext(void)
+CFilterProgramNumberCollection *CTransportStreamProgramMapParserContext::GetFilterProgramNumbers(void)
 {
-  return (CTransportStreamProgramMapSectionContext *)__super::GetSectionContext();
-}
-
-CProgramElementCollection *CTransportStreamProgramMapParserContext::GetLeaveProgramElements(void)
-{
-  return this->leaveProgramElements;
+  return this->filterProgramNumbers;
 }
 
 /* set methods */
 
-void CTransportStreamProgramMapParserContext::SetFilterProgramElements(bool filterProgramElements)
+HRESULT CTransportStreamProgramMapParserContext::SetKnownSection(CSection *section)
 {
-  this->flags &= ~TRANSPORT_STREAM_PROGRAM_MAP_PARSER_CONTEXT_FLAG_FILTER_PROGRAM_ELEMENTS;
-  this->flags |= filterProgramElements ? TRANSPORT_STREAM_PROGRAM_MAP_PARSER_CONTEXT_FLAG_FILTER_PROGRAM_ELEMENTS : TRANSPORT_STREAM_PROGRAM_MAP_PARSER_CONTEXT_FLAG_NONE;
+  HRESULT result = S_OK;
+  CHECK_POINTER_DEFAULT_HRESULT(result, section);
+
+  if (SUCCEEDED(result))
+  {
+    CTransportStreamProgramMapSection *transportStreamProgramMapSection = dynamic_cast<CTransportStreamProgramMapSection *>(section);
+    CHECK_POINTER_HRESULT(result, transportStreamProgramMapSection, result, E_INVALIDARG);
+
+    CHECK_CONDITION_HRESULT(result, this->knownSections->Add((uint16_t)transportStreamProgramMapSection->GetProgramNumber(), transportStreamProgramMapSection->GetCrc32()), result, E_FAIL);
+  }
+
+  return result;
 }
 
 /* other methods */
 
-bool CTransportStreamProgramMapParserContext::IsFilterProgramElements(void)
+void CTransportStreamProgramMapParserContext::Clear(void)
 {
-  return this->IsSetFlags(TRANSPORT_STREAM_PROGRAM_MAP_PARSER_CONTEXT_FLAG_FILTER_PROGRAM_ELEMENTS);
+  __super::Clear();
+  this->knownSections->Clear();
+  this->filterProgramNumbers->Clear();
 }
 
-HRESULT CTransportStreamProgramMapParserContext::CreateSectionContext(void)
+bool CTransportStreamProgramMapParserContext::IsKnownSection(CSection *section)
 {
-  HRESULT result = S_OK;
-  FREE_MEM_CLASS(this->sectionContext);
+  CTransportStreamProgramMapSection *transportStreamProgramMapSection = dynamic_cast<CTransportStreamProgramMapSection *>(section);
+  bool result = (transportStreamProgramMapSection != NULL);
 
-  this->sectionContext = new CTransportStreamProgramMapSectionContext(&result, this);
-  CHECK_POINTER_HRESULT(result, this->sectionContext, result, E_OUTOFMEMORY);
+  if (result)
+  {
+    result = this->knownSections->Contains((uint16_t)transportStreamProgramMapSection->GetProgramNumber(), transportStreamProgramMapSection->GetCrc32());
+  }
 
-  CHECK_CONDITION_EXECUTE(FAILED(result), FREE_MEM_CLASS(this->sectionContext));
   return result;
 }
 
