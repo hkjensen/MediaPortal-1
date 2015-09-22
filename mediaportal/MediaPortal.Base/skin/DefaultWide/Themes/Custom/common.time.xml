@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <window>
   <controls>
     <control>
@@ -11,7 +11,7 @@
       <align>right</align>
       <font>font11</font>
       <textcolor>ff6FAFE1</textcolor>
-      <visible>!plugin.isenabled(World Weather)</visible>
+      <visible>![plugin.isenabled(World Weather) | plugin.isenabled(World Weather Lite)]</visible>
     </control>
     <!--     *****************************************************************************  -->
     <!--     ***************************  World Weather plugin  **************************  -->
@@ -26,7 +26,7 @@
       <align>right</align>
       <font>font11</font>
       <textcolor>ff6FAFE1</textcolor>
-      <visible>plugin.isenabled(World Weather)</visible>
+      <visible>[plugin.isenabled(World Weather) | plugin.isenabled(World Weather Lite)]</visible>
     </control>
     <control>
       <description>current weather icon</description>
