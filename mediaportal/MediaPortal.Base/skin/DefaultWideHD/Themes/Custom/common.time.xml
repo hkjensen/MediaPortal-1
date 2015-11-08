@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<window>
+  <controls>
+    <control>
+      <description>Date Time</description>
+      <type>label</type>
+      <id>0</id>
+      <posX>1866</posX>
+      <posY>10</posY>
+      <label>#date | #time</label>
+      <align>right</align>
+      <font>font11</font>
+      <textcolor>ff6FAFE1</textcolor>
+      <visible>![plugin.isenabled(World Weather) | plugin.isenabled(World Weather Lite)]</visible>
+    </control>
+    <!--     *****************************************************************************  -->
+    <!--     ***************************  World Weather plugin  **************************  -->
+    <!--     *****************************************************************************  -->
+    <control>
+      <description>Date Time</description>
+      <type>label</type>
+      <id>0</id>
+      <posX>1788</posX>
+      <posY>10</posY>
+      <label>#date | #time | #WorldWeather.TodayTemperature</label>
+      <align>right</align>
+      <font>font11</font>
+      <textcolor>ff6FAFE1</textcolor>
+      <visible>[plugin.isenabled(World Weather) | plugin.isenabled(World Weather Lite)]</visible>
+    </control>
+    <control>
+      <description>current weather icon</description>
+      <type>image</type>
+      <id>0</id>
+      <posX>1800</posX>
+      <posY>0</posY>
+      <texture>#WorldWeather.TodayIconImage</texture>
+      <width>64</width>
+      <height>64</height>
+      <visible>plugin.isenabled(World Weather)</visible>
+    </control>
+  </controls>
+</window>

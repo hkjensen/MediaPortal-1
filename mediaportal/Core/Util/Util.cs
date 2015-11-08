@@ -4251,7 +4251,7 @@ namespace MediaPortal.Util
           {
             using (Profile.Settings xmlreader = new Profile.MPSettings())
             {
-              currentSkin = Config.Dir.Config + @"\skin\" + xmlreader.GetValueAsString("skin", "name", "Default");
+              currentSkin = Config.Dir.Config + @"\skin\" + xmlreader.GetValueAsString("skin", "name", "Titan");
             }
             defaultBackground = currentSkin + @"\media\previewbackground.png";
           }
@@ -4427,7 +4427,7 @@ namespace MediaPortal.Util
           {
             using (Profile.Settings xmlreader = new Profile.MPSettings())
             {
-              currentSkin = Config.Dir.Config + @"\skin\" + xmlreader.GetValueAsString("skin", "name", "Default");
+              currentSkin = Config.Dir.Config + @"\skin\" + xmlreader.GetValueAsString("skin", "name", "Titan");
             }
             defaultBackground = currentSkin + @"\media\previewbackground.png";
           }
