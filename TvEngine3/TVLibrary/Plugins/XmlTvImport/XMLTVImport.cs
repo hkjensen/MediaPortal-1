@@ -457,12 +457,7 @@ namespace TvEngine
                         else xmlProg.Skip();
                         break;
                       case "episode-num":
-                        if (xmlProg.GetAttribute("system").Equals("xmltv_ns")) 
-                        {
-                            nodeEpisodeNumSystem = xmlProg.GetAttribute("system");
-                            nodeEpisodeNum = xmlProg.ReadString();
-                        }
-                        else if (nodeEpisodeNum == null && xmlProg.GetAttribute("system").Equals("onscreen"))
+                        if (nodeEpisodeNum == null)
                         {
                           nodeEpisodeNumSystem = xmlProg.GetAttribute("system");
                           nodeEpisodeNum = xmlProg.ReadString();
