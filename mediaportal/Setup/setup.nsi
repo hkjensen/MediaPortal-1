@@ -403,7 +403,7 @@ Section "MediaPortal core files (required)" SecCore
 ### AUTO-GENERATED   UNINSTALLATION CODE   END ###
 
   ; remve Default and DefautWide skins (were used before 1.13)
-  RMDir /r "$MPdir.Skin\Default"
+##  RMDir /r "$MPdir.Skin\Default"
   RMDir /r "$MPdir.Skin\DefaultWide"
 
   ; create empty folders
