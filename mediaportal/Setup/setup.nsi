@@ -283,18 +283,6 @@ ShowUninstDetails show
   ${EndIf}
 !macroend
 
-!macro un.Fonts
-  ; used for Default and Titan Skin Font
-  StrCpy $FONT_DIR $FONTS
-  !insertmacro RemoveTTFFont "Lato-Medium.ttf"
-  !insertmacro RemoveTTFFont "Lato-Light.ttf"
-  !insertmacro RemoveTTFFont "TitanSmall.ttf"
-  !insertmacro RemoveTTFFont "Titan.ttf"
-  !insertmacro RemoveTTFFont "TitanLight.ttf"
-  !insertmacro RemoveTTFFont "TitanMedium.ttf"
-  SendMessage ${HWND_BROADCAST} ${WM_FONTCHANGE} 0 0 /TIMEOUT=1000
-!macroend
-
 Function RunUninstaller
 
 !ifndef GIT_BUILD
@@ -415,7 +403,7 @@ Section "MediaPortal core files (required)" SecCore
 ### AUTO-GENERATED   UNINSTALLATION CODE   END ###
 
   ; remve Default and DefautWide skins (were used before 1.13)
-  RMDir /r "$MPdir.Skin\Default"
+##  RMDir /r "$MPdir.Skin\Default"
   RMDir /r "$MPdir.Skin\DefaultWide"
 
   ; create empty folders
@@ -573,6 +561,12 @@ Section "MediaPortal core files (required)" SecCore
   File "${git_MP}\LastFMLibrary\bin\${BUILD_TYPE}\LastFMLibrary.dll"
   ; MediaPortal.exe
   
+  ; protocol implementations for MPUrlSourceSplitter.ax
+  File "${git_DirectShowFilters}\bin_Win32\MPUrlSourceSplitter*"
+  File "${git_DirectShowFilters}\bin_Win32\avcodec-mpurlsourcesplitter-54.dll"
+  File "${git_DirectShowFilters}\bin_Win32\avformat-mpurlsourcesplitter-54.dll"
+  File "${git_DirectShowFilters}\bin_Win32\avutil-mpurlsourcesplitter-51.dll" 
+
   #---------------------------------------------------------------------------
   # FILTER REGISTRATION
   #               for more information see:           http://nsis.sourceforge.net/Docs/AppendixB.html
@@ -594,20 +588,14 @@ Section "MediaPortal core files (required)" SecCore
   !insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_NOTPROTECTED "${git_DirectShowFilters}\BDReader\bin\${BUILD_TYPE}\BDReader.ax"                "$MPdir.Base\BDReader.ax"         "$MPdir.Base"
   !insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_NOTPROTECTED "${git_DirectShowFilters}\DVBSubtitle3\bin\${BUILD_TYPE}\DVBSub3.ax"             "$MPdir.Base\DVBSub3.ax"          "$MPdir.Base"
   
+  ; filter for IPTV support
+  !insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_NOTPROTECTED "${git_DirectShowFilters}\bin_Win32\MPUrlSourceSplitter.ax" "$INSTDIR\MPUrlSourceSplitter.ax" "$INSTDIR"
+
   ; used for Mediaportal Audio Renderer
   ${If} ${SSE2Supported} 
   ${AndIf} ${AtLeastWinVista}
     !insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_NOTPROTECTED "${git_DirectShowFilters}\MPAudioRenderer\bin\${BUILD_TYPE}\mpaudiorenderer.ax"                "$MPdir.Base\mpaudiorenderer.ax"         "$MPdir.Base"
   ${EndIf}
-
-  ; delete font for proper reinstallation for Default and Titan Skin Font
-  !insertmacro un.Fonts
-  Delete "$FONT\TitanSmall.ttf"
-  Delete "$FONT\Titan.ttf"
-  Delete "$FONT\TitanLight.ttf"
-  Delete "$FONT\TitanMedium.ttf"
-  Delete "$FONT\Lato-Medium.ttf"
-  Delete "$FONT\Lato-Light.ttf"
 
   ; used for Default and Titan Skin Font
   StrCpy $FONT_DIR $FONTS
@@ -654,6 +642,8 @@ SectionEnd
 		Delete  "$MPdir.Base\mpaudiorenderer.ax"
 	${EndIf}
   ${EndIf}
+  ; filter for URL/IPTV support
+  !insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_NOTPROTECTED "$INSTDIR\\MPUrlSourceSplitter.ax"
 
 ### AUTO-GENERATED   UNINSTALLATION CODE ###
   !include "${git_MP}\Setup\uninstall.nsh"
@@ -680,6 +670,11 @@ SectionEnd
   Delete "$MPdir.Config\scripts\VDBParserStrings.xml"
   RMDir "$MPdir.Config\scripts"
 
+  ; protocol implementations for MPUrlSourceSplitter.ax
+  Delete "$MPdir.Base\MPUrlSourceSplitter*"
+  Delete "$MPdir.Base\avcodec-mpurlsourcesplitter-54.dll"
+  Delete "$MPdir.Base\avformat-mpurlsourcesplitter-54.dll"
+  Delete "$MPdir.Base\avutil-mpurlsourcesplitter-51.dll" 
 
   ; MediaPortal.exe
   Delete "$MPdir.Base\MediaPortal.exe"
