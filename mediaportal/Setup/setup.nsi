@@ -106,6 +106,9 @@ Var frominstall
 
 Var MPTray_Running
 
+Var PREVIOUS_SKINSETTINGS_TITAN_CONFIG
+Var PREVIOUS_SKINSETTINGS_DEFAULTWIDEHD_CONFIG
+
 #---------------------------------------------------------------------------
 # INCLUDE FILES
 #---------------------------------------------------------------------------
@@ -283,6 +286,32 @@ ShowUninstDetails show
   ${EndIf}
 !macroend
 
+!macro BackupSkinSettings
+  ${If} ${FileExists} "${COMMON_APPDATA}\skin\DefaultWideHD\SkinSettings.xml"
+    GetTempFileName $PREVIOUS_SKINSETTINGS_DEFAULTWIDEHD_CONFIG
+    ${LOG_TEXT} "INFO" "Backup SkinSettings.xml for DefaultWideHD (${COMMON_APPDATA}\skin\DefaultWideHD\SkinSettings.xml)"
+    CopyFiles /SILENT /FILESONLY "${COMMON_APPDATA}\skin\DefaultWideHD\SkinSettings.xml" "$PREVIOUS_SKINSETTINGS_DEFAULTWIDEHD_CONFIG"
+  ${EndIf}
+  
+  ${If} ${FileExists} "${COMMON_APPDATA}\skin\Titan\SkinSettings.xml"
+    GetTempFileName $PREVIOUS_SKINSETTINGS_TITAN_CONFIG
+    ${LOG_TEXT} "INFO" "Backup SkinSettings.xml for Titan (${COMMON_APPDATA}\skin\Titan\SkinSettings.xml)"
+    CopyFiles /SILENT /FILESONLY "${COMMON_APPDATA}\skin\Titan\SkinSettings.xml" "$PREVIOUS_SKINSETTINGS_TITAN_CONFIG"
+  ${EndIf}
+!macroend
+
+!macro RestoreSkinSettings
+  ${If} ${FileExists} "$PREVIOUS_SKINSETTINGS_DEFAULTWIDEHD_CONFIG"
+    ${LOG_TEXT} "INFO" "Restore SkinSettings.xml for DefaultWideHD (${COMMON_APPDATA}\skin\DefaultWideHD\SkinSettings.xml)"
+    CopyFiles /SILENT /FILESONLY "$PREVIOUS_SKINSETTINGS_DEFAULTWIDEHD_CONFIG" "${COMMON_APPDATA}\skin\DefaultWideHD\SkinSettings.xml" 
+  ${EndIf}
+
+  ${If} ${FileExists} "$PREVIOUS_SKINSETTINGS_TITAN_CONFIG"
+    ${LOG_TEXT} "INFO" "Restore SkinSettings.xml for Titan (${COMMON_APPDATA}\skin\Titan\SkinSettings.xml)"
+    CopyFiles /SILENT /FILESONLY "$PREVIOUS_SKINSETTINGS_TITAN_CONFIG" "${COMMON_APPDATA}\skin\Titan\SkinSettings.xml" 
+  ${EndIf}  
+!macroend
+
 Function RunUninstaller
 
 !ifndef GIT_BUILD
@@ -306,6 +335,7 @@ Section "-prepare" SecPrepare
   ${ReadMediaPortalDirs} "$INSTDIR"
 
   !insertmacro ShutdownRunningMediaPortalApplications
+  !insertmacro BackupSkinSettings
 
   ${LOG_TEXT} "INFO" "Deleting SkinCache..."
   RMDir /r "$MPdir.Cache"
@@ -403,8 +433,8 @@ Section "MediaPortal core files (required)" SecCore
 ### AUTO-GENERATED   UNINSTALLATION CODE   END ###
 
   ; remve Default and DefautWide skins (were used before 1.13)
-##  RMDir /r "$MPdir.Skin\Default"
-  RMDir /r "$MPdir.Skin\DefaultWide"
+  RMDir /r "$MPdir.Skin\Default"
+###  RMDir /r "$MPdir.Skin\DefaultWide"
 
   ; create empty folders
   SetOutPath "$MPdir.Config"
@@ -561,12 +591,6 @@ Section "MediaPortal core files (required)" SecCore
   File "${git_MP}\LastFMLibrary\bin\${BUILD_TYPE}\LastFMLibrary.dll"
   ; MediaPortal.exe
   
-  ; protocol implementations for MPUrlSourceSplitter.ax
-  File "${git_DirectShowFilters}\bin_Win32\MPUrlSourceSplitter*"
-  File "${git_DirectShowFilters}\bin_Win32\avcodec-mpurlsourcesplitter-54.dll"
-  File "${git_DirectShowFilters}\bin_Win32\avformat-mpurlsourcesplitter-54.dll"
-  File "${git_DirectShowFilters}\bin_Win32\avutil-mpurlsourcesplitter-51.dll" 
-
   #---------------------------------------------------------------------------
   # FILTER REGISTRATION
   #               for more information see:           http://nsis.sourceforge.net/Docs/AppendixB.html
@@ -608,6 +632,8 @@ Section "MediaPortal core files (required)" SecCore
   !insertmacro InstallTTFFont "${MEDIAPORTAL.BASE}\skin\Titan\Fonts\TitanMedium.ttf"
   SendMessage ${HWND_BROADCAST} ${WM_FONTCHANGE} 0 0 /TIMEOUT=1000
   
+  !insertmacro RestoreSkinSettings
+
 SectionEnd
 !macro Remove_${SecCore}
   ${LOG_TEXT} "INFO" "Uninstalling MediaPortal core files..."
@@ -642,8 +668,6 @@ SectionEnd
 		Delete  "$MPdir.Base\mpaudiorenderer.ax"
 	${EndIf}
   ${EndIf}
-  ; filter for URL/IPTV support
-  !insertmacro UnInstallLib REGDLL NOTSHARED REBOOT_NOTPROTECTED "$INSTDIR\\MPUrlSourceSplitter.ax"
 
 ### AUTO-GENERATED   UNINSTALLATION CODE ###
   !include "${git_MP}\Setup\uninstall.nsh"
@@ -666,15 +690,9 @@ SectionEnd
   Delete "$MPdir.Config\scripts\MovieInfo\IMDB_MP13x.csscript"
   RMDir "$MPdir.Config\scripts\MovieInfo"
   Delete "$MPdir.Config\scripts\InternalActorMoviesGrabber.csscript"
-	Delete "$MPdir.Config\scripts\InternalMovieImagesGrabber.csscript"
+  Delete "$MPdir.Config\scripts\InternalMovieImagesGrabber.csscript"
   Delete "$MPdir.Config\scripts\VDBParserStrings.xml"
   RMDir "$MPdir.Config\scripts"
-
-  ; protocol implementations for MPUrlSourceSplitter.ax
-  Delete "$MPdir.Base\MPUrlSourceSplitter*"
-  Delete "$MPdir.Base\avcodec-mpurlsourcesplitter-54.dll"
-  Delete "$MPdir.Base\avformat-mpurlsourcesplitter-54.dll"
-  Delete "$MPdir.Base\avutil-mpurlsourcesplitter-51.dll" 
 
   ; MediaPortal.exe
   Delete "$MPdir.Base\MediaPortal.exe"
