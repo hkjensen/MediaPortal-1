@@ -286,18 +286,6 @@ ShowUninstDetails show
   ${EndIf}
 !macroend
 
-!macro un.Fonts
-  ; used for Default and Titan Skin Font
-  StrCpy $FONT_DIR $FONTS
-  !insertmacro RemoveTTFFont "Lato-Medium.ttf"
-  !insertmacro RemoveTTFFont "Lato-Light.ttf"
-  !insertmacro RemoveTTFFont "TitanSmall.ttf"
-  !insertmacro RemoveTTFFont "Titan.ttf"
-  !insertmacro RemoveTTFFont "TitanLight.ttf"
-  !insertmacro RemoveTTFFont "TitanMedium.ttf"
-  SendMessage ${HWND_BROADCAST} ${WM_FONTCHANGE} 0 0 /TIMEOUT=1000
-!macroend
-
 !macro BackupSkinSettings
   ${If} ${FileExists} "${COMMON_APPDATA}\skin\DefaultWideHD\SkinSettings.xml"
     GetTempFileName $PREVIOUS_SKINSETTINGS_DEFAULTWIDEHD_CONFIG
@@ -446,7 +434,7 @@ Section "MediaPortal core files (required)" SecCore
 
   ; remve Default and DefautWide skins (were used before 1.13)
 ##  RMDir /r "$MPdir.Skin\Default"
-  RMDir /r "$MPdir.Skin\DefaultWide"
+###  RMDir /r "$MPdir.Skin\DefaultWide"
 
   ; create empty folders
   SetOutPath "$MPdir.Config"
@@ -545,11 +533,13 @@ Section "MediaPortal core files (required)" SecCore
   File "${git_MP}\WindowPlugins\Common.GUIPlugins\bin\${BUILD_TYPE}\Common.GUIPlugins.dll"
   ; ffmpeg
   SetOutPath "$MPdir.Base\MovieThumbnailer"
-  File "${git_ROOT}\Packages\ffmpeg.2.1.1\ffmpeg.exe"
+  File "${git_ROOT}\Packages\ffmpeg.2.7.1\ffmpeg.exe"
   ; NuGet binaries MediaInfo
   SetOutPath "$MPdir.Base\"
-  File "${git_ROOT}\Packages\MediaInfo.0.7.69\MediaInfo.dll"
-  ; NuGet binaries
+  File "${git_ROOT}\Packages\MediaInfo.0.7.72\MediaInfo.dll"
+  ; NuGet binaries Sqlite
+  SetOutPath "$MPdir.Base\"
+  File "${git_ROOT}\Packages\Sqlite.3.9.2\Sqlite.dll"
   ; Bass Core
   SetOutPath "$MPdir.Base\"
   File "${git_ROOT}\Packages\BASS.2.4.10\bass.dll"
@@ -638,15 +628,6 @@ Section "MediaPortal core files (required)" SecCore
   ${AndIf} ${AtLeastWinVista}
     !insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_NOTPROTECTED "${git_DirectShowFilters}\MPAudioRenderer\bin\${BUILD_TYPE}\mpaudiorenderer.ax"                "$MPdir.Base\mpaudiorenderer.ax"         "$MPdir.Base"
   ${EndIf}
-
-  ; delete font for proper reinstallation for Default and Titan Skin Font
-  !insertmacro un.Fonts
-  Delete "$FONT\TitanSmall.ttf"
-  Delete "$FONT\Titan.ttf"
-  Delete "$FONT\TitanLight.ttf"
-  Delete "$FONT\TitanMedium.ttf"
-  Delete "$FONT\Lato-Medium.ttf"
-  Delete "$FONT\Lato-Light.ttf"
 
   ; used for Default and Titan Skin Font
   StrCpy $FONT_DIR $FONTS
