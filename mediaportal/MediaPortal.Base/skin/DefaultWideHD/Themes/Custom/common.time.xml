@@ -35,7 +35,7 @@
       <posX>1800</posX>
       <posY>0</posY>
       <texture>#WorldWeather.TodayIconImage</texture>
-      <width>64</width>
+      <width>100</width>
       <height>64</height>
       <visible>plugin.isenabled(World Weather)</visible>
     </control>
