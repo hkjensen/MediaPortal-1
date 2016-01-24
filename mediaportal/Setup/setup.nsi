@@ -286,6 +286,19 @@ ShowUninstDetails show
   ${EndIf}
 !macroend
 
+!macro un.Fonts
+  ; used for Default and Titan Skin Font
+  StrCpy $FONT_DIR $FONTS
+  !insertmacro RemoveTTFFont "Lato-Medium.ttf"
+  !insertmacro RemoveTTFFont "Lato-Light.ttf"
+  !insertmacro RemoveTTFFont "TitanSmall.ttf"
+  !insertmacro RemoveTTFFont "Titan.ttf"
+  !insertmacro RemoveTTFFont "TitanLight.ttf"
+  !insertmacro RemoveTTFFont "TitanMedium.ttf"
+  !insertmacro RemoveTTFFont "NotoSans-Regular.ttf"
+  SendMessage ${HWND_BROADCAST} ${WM_FONTCHANGE} 0 0 /TIMEOUT=1000
+!macroend
+
 !macro BackupSkinSettings
   ${If} ${FileExists} "${COMMON_APPDATA}\skin\DefaultWideHD\SkinSettings.xml"
     GetTempFileName $PREVIOUS_SKINSETTINGS_DEFAULTWIDEHD_CONFIG
@@ -537,7 +550,7 @@ Section "MediaPortal core files (required)" SecCore
   File "${git_ROOT}\Packages\MediaInfo.0.7.72\MediaInfo.dll"
   ; NuGet binaries Sqlite
   SetOutPath "$MPdir.Base\"
-  File "${git_ROOT}\Packages\Sqlite.3.9.2\Sqlite.dll"
+  File "${git_ROOT}\Packages\Sqlite.3.10.0\Sqlite.dll"
   ; Bass Core
   SetOutPath "$MPdir.Base\"
   File "${git_ROOT}\Packages\BASS.2.4.10\bass.dll"
@@ -571,10 +584,10 @@ Section "MediaPortal core files (required)" SecCore
   File "${git_ROOT}\Packages\bass.dsd.0.0.1\bassdsd.dll"
   ; taglib-sharp
   SetOutPath "$MPdir.Base\"
-  File "${git_ROOT}\Packages\MediaPortal.TagLib.2.0.3.8\lib\taglib-sharp.dll"
+  File "${git_ROOT}\Packages\MediaPortal.TagLib.2.1.0.1\lib\net40\taglib-sharp.dll"
   ; SharpLibHid
   SetOutPath "$MPdir.Base\"
-  File "${git_ROOT}\Packages\SharpLibHid.1.3.0\lib\net20\SharpLibHid.dll"
+  File "${git_ROOT}\Packages\SharpLibHid.1.3.1\lib\net20\SharpLibHid.dll"
   ; SharpLibWin32
   SetOutPath "$MPdir.Base\"
   File "${git_ROOT}\Packages\SharpLibWin32.0.0.7\lib\net20\SharpLibWin32.dll"
@@ -624,11 +637,20 @@ Section "MediaPortal core files (required)" SecCore
     !insertmacro InstallLib REGDLL NOTSHARED NOREBOOT_NOTPROTECTED "${git_DirectShowFilters}\MPAudioRenderer\bin\${BUILD_TYPE}\mpaudiorenderer.ax"                "$MPdir.Base\mpaudiorenderer.ax"         "$MPdir.Base"
   ${EndIf}
 
+  ; delete font for proper reinstallation for Default and Titan Skin Font
+  !insertmacro un.Fonts
+  Delete "${MEDIAPORTAL.BASE}\skin\Titan\Fonts\TitanSmall.ttf"
+  Delete "${MEDIAPORTAL.BASE}\skin\Titan\Fonts\Titan.ttf"
+  Delete "${MEDIAPORTAL.BASE}\skin\Titan\Fonts\TitanLight.ttf"
+  Delete "${MEDIAPORTAL.BASE}\skin\Titan\Fonts\TitanMedium.ttf"
+  Delete "${MEDIAPORTAL.BASE}\skin\DefaultWideHD\MPDefaultFonts\Lato-Medium.ttf"
+  Delete "${MEDIAPORTAL.BASE}\skin\DefaultWideHD\MPDefaultFonts\Lato-Light.ttf"
+  Delete "${MEDIAPORTAL.BASE}\skin\DefaultWideHD\MPDefaultFonts\NotoSans-Regular.ttf"
+
   ; used for Default and Titan Skin Font
   StrCpy $FONT_DIR $FONTS
 
-  !insertmacro InstallTTFFont "${MEDIAPORTAL.BASE}\skin\DefaultWideHD\MPDefaultFonts\Lato-Medium.ttf"
-  !insertmacro InstallTTFFont "${MEDIAPORTAL.BASE}\skin\DefaultWideHD\MPDefaultFonts\Lato-Light.ttf"
+  !insertmacro InstallTTFFont "${MEDIAPORTAL.BASE}\skin\DefaultWideHD\MPDefaultFonts\NotoSans-Regular.ttf"
   !insertmacro InstallTTFFont "${MEDIAPORTAL.BASE}\skin\Titan\Fonts\TitanSmall.ttf"
   !insertmacro InstallTTFFont "${MEDIAPORTAL.BASE}\skin\Titan\Fonts\Titan.ttf"
   !insertmacro InstallTTFFont "${MEDIAPORTAL.BASE}\skin\Titan\Fonts\TitanLight.ttf"
