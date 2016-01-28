@@ -1021,6 +1021,10 @@ namespace MediaPortal.Video.Database
               GetUserFanart(item, ref info);
             }
           }
+          catch (ThreadAbortException) 
+          {
+            Log.Debug("IMDBMovie.ThreadAbortException SetMovieData (GetMovieInfo) error.");
+          }
           catch (Exception ex)
           {
             Log.Error("IMDBMovie Set user fanart file property error: {0}", ex.Message);
@@ -1028,11 +1032,19 @@ namespace MediaPortal.Video.Database
 
           item.AlbumInfoTag = info;
         }
+        catch (ThreadAbortException) 
+        {
+          Log.Debug("IMDBMovie.ThreadAbortException SetMovieData (GetMovieInfo) error.");
+        }
         catch (Exception ex)
         {
           Log.Error("IMDBMovie SetMovieData (GetMovieInfo) error: {0}", ex.Message);
           item.AlbumInfoTag = info;
         }
+      }
+      catch (ThreadAbortException)
+      {
+        Log.Debug("IMDBMovie.ThreadAbortException SetMovieData error.");
       }
       catch (Exception ex)
       {
