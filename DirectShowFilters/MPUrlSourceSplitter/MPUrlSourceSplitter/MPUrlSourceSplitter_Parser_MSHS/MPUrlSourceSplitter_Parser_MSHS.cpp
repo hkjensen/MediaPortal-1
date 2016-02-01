@@ -127,7 +127,7 @@ HRESULT CMPUrlSourceSplitter_Parser_Mshs::GetParserResult(void)
           {
             request->SetStart(0);
             request->SetLength(requestLength);
-            request->SetAnyNonZeroDataLength(true);
+            request->SetAnyDataLength(true);
 
             package->SetRequest(request);
           }
@@ -147,7 +147,7 @@ HRESULT CMPUrlSourceSplitter_Parser_Mshs::GetParserResult(void)
               this->parserResult = PARSER_RESULT_NOT_KNOWN;
             }
 
-            if (response != NULL)
+            if ((this->parserResult == PARSER_RESULT_PENDING) && (response != NULL) && (response->GetBuffer()->GetBufferOccupiedSpace() > 0))
             {
               receivedSameLength = (response->GetBuffer()->GetBufferOccupiedSpace() == this->lastReceivedLength);
               if (!receivedSameLength)
@@ -411,16 +411,6 @@ HRESULT CMPUrlSourceSplitter_Parser_Mshs::GetParserResult(void)
                         CHECK_POINTER_HRESULT(this->parserResult, replacedUrl, this->parserResult, E_OUTOFMEMORY);
                         CHECK_POINTER_HRESULT(this->parserResult, wcsstr(replacedUrl, L"mshs://"), this->parserResult, E_MSHS_ONLY_HTTP_PROTOCOL_SUPPORTED_IN_URL);
 
-
-                        CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_COOKIE, true, PARAMETER_NAME_MSHS_COOKIE), this->parserResult, E_OUTOFMEMORY);
-                        CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_IGNORE_CONTENT_LENGTH, true, PARAMETER_NAME_MSHS_IGNORE_CONTENT_LENGTH), this->parserResult, E_OUTOFMEMORY);
-                        CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_OPEN_CONNECTION_TIMEOUT, true, PARAMETER_NAME_MSHS_OPEN_CONNECTION_TIMEOUT), this->parserResult, E_OUTOFMEMORY);
-                        CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_OPEN_CONNECTION_SLEEP_TIME, true, PARAMETER_NAME_MSHS_OPEN_CONNECTION_SLEEP_TIME), this->parserResult, E_OUTOFMEMORY);
-                        CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_TOTAL_REOPEN_CONNECTION_TIMEOUT, true, PARAMETER_NAME_MSHS_TOTAL_REOPEN_CONNECTION_TIMEOUT), this->parserResult, E_OUTOFMEMORY);
-                        CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_REFERER, true, PARAMETER_NAME_MSHS_REFERER), this->parserResult, E_OUTOFMEMORY);
-                        CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_USER_AGENT, true, PARAMETER_NAME_MSHS_USER_AGENT), this->parserResult, E_OUTOFMEMORY);
-                        CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_VERSION, true, PARAMETER_NAME_MSHS_VERSION), this->parserResult, E_OUTOFMEMORY);
-
                         CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->Update(PARAMETER_NAME_URL, true, replacedUrl), this->parserResult, E_OUTOFMEMORY);
 
                         if (SUCCEEDED(this->parserResult))
@@ -459,28 +449,6 @@ HRESULT CMPUrlSourceSplitter_Parser_Mshs::GetParserResult(void)
                             FREE_MEM_CLASS(protocolConnectionParameters);
                           }
 
-                          // copy current cookies parameters
-                          if (SUCCEEDED(this->parserResult) && (usedCookies != NULL) && (usedCookies->Count() != 0))
-                          {
-                            // first add count of cookies
-                            wchar_t *cookiesCountValue = FormatString(L"%u", usedCookies->Count());
-                            CHECK_POINTER_HRESULT(this->parserResult, cookiesCountValue, this->parserResult, E_OUTOFMEMORY);
-
-                            CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->Update(PARAMETER_NAME_MSHS_COOKIES_COUNT, true, cookiesCountValue), this->parserResult, E_OUTOFMEMORY);
-                            for (unsigned int i = 0; (SUCCEEDED(this->parserResult) && (i < usedCookies->Count())); i++)
-                            {
-                              CParameter *cookie = usedCookies->GetItem(i);
-
-                              wchar_t *name = FormatString(MSHS_COOKIE_FORMAT_PARAMETER_NAME, i);
-                              CHECK_POINTER_HRESULT(this->parserResult, name, this->parserResult, E_OUTOFMEMORY);
-
-                              CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->Update(name, true, cookie->GetValue()), this->parserResult, E_OUTOFMEMORY);
-                              FREE_MEM(name);
-                            }
-
-                            FREE_MEM(cookiesCountValue);
-                          }
-
                           FREE_MEM_CLASS(usedCookies);
                         }
                       }
@@ -505,6 +473,11 @@ HRESULT CMPUrlSourceSplitter_Parser_Mshs::GetParserResult(void)
               }
 
               this->lastReceivedLength = response->GetBuffer()->GetBufferOccupiedSpace();
+            }
+            else
+            {
+              // no data received
+              break;
             }
           }
         }
@@ -541,24 +514,6 @@ const wchar_t *CMPUrlSourceSplitter_Parser_Mshs::GetName(void)
   return PARSER_NAME;
 }
 
-HRESULT CMPUrlSourceSplitter_Parser_Mshs::Initialize(CPluginConfiguration *configuration)
-{
-  HRESULT result = __super::Initialize(configuration);
-
-  if (SUCCEEDED(result))
-  {
-    CParserPluginConfiguration *parserConfiguration = (CParserPluginConfiguration *)configuration;
-    CHECK_POINTER_HRESULT(result, parserConfiguration, result, E_INVALIDARG);
-  }
-
-  if (SUCCEEDED(result))
-  {
-    this->configuration->LogCollection(this->logger, LOGGER_VERBOSE, PARSER_IMPLEMENTATION_NAME, METHOD_INITIALIZE_NAME);
-  }
-
-  return result;
-}
-
 // ISeeking interface
 
 // IDemuxerOwner interface
@@ -575,6 +530,11 @@ void CMPUrlSourceSplitter_Parser_Mshs::ClearSession(void)
 // IProtocol interface
 
 /* protected methods */
+
+const wchar_t *CMPUrlSourceSplitter_Parser_Mshs::GetModuleName(void)
+{
+  return PARSER_IMPLEMENTATION_NAME;
+}
 
 const wchar_t *CMPUrlSourceSplitter_Parser_Mshs::GetStoreFileNamePart(void)
 {

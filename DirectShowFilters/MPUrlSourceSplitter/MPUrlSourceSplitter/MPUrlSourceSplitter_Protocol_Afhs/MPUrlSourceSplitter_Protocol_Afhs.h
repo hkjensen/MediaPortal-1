@@ -57,8 +57,9 @@ unsigned char FLV_FILE_HEADER[FLV_FILE_HEADER_LENGTH] =                         
 #define MP_URL_SOURCE_SPLITTER_PROTOCOL_AFHS_FLAG_SKIP_HEADER_AND_META            (1 << (PROTOCOL_PLUGIN_FLAG_LAST + 3))
 
 #define MP_URL_SOURCE_SPLITTER_PROTOCOL_AFHS_UPDATE_SEGMENT_FRAGMENTS             (1 << (PROTOCOL_PLUGIN_FLAG_LAST + 4))
+#define MP_URL_SOURCE_SPLITTER_PROTOCOL_AFHS_DOWNLOAD_BOOTSTRAP_INFO              (1 << (PROTOCOL_PLUGIN_FLAG_LAST + 5))
 
-#define MP_URL_SOURCE_SPLITTER_PROTOCOL_AFHS_FLAG_LAST                            (PROTOCOL_PLUGIN_FLAG_LAST + 5)
+#define MP_URL_SOURCE_SPLITTER_PROTOCOL_AFHS_FLAG_LAST                            (PROTOCOL_PLUGIN_FLAG_LAST + 6)
 
 class CMPUrlSourceSplitter_Protocol_Afhs : public CProtocolPlugin
 {
@@ -155,17 +156,13 @@ public:
   // @return : reference to null-terminated string
   virtual const wchar_t *GetName(void);
 
-  // get plugin instance ID
-  // @return : GUID, which represents instance identifier or GUID_NULL if error
-  virtual GUID GetInstanceId(void);
-
   // initialize plugin implementation with configuration parameters
   // @param configuration : the reference to additional configuration parameters (created by plugin's hoster class)
   // @return : S_OK if successfull, error code otherwise
   virtual HRESULT Initialize(CPluginConfiguration *configuration);
 
 protected:
-  // hodls decryption hoster
+  // holds decryption hoster
   CAfhsDecryptionHoster *decryptionHoster;
 
   // mutex for locking access to file, buffer, ...
@@ -212,6 +209,10 @@ protected:
   unsigned int currentProcessedSize;
 
   /* methods */
+
+  // get module name for Initialize() method
+  // @return : module name
+  virtual const wchar_t *GetModuleName(void);
 
   // gets store file name part
   // @return : store file name part or NULL if error

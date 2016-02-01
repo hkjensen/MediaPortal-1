@@ -130,7 +130,7 @@ HRESULT CMPUrlSourceSplitter_Parser_M3U8::GetParserResult(void)
           {
             request->SetStart(0);
             request->SetLength(requestLength);
-            request->SetAnyNonZeroDataLength(true);
+            request->SetAnyDataLength(true);
 
             package->SetRequest(request);
           }
@@ -150,7 +150,7 @@ HRESULT CMPUrlSourceSplitter_Parser_M3U8::GetParserResult(void)
               this->parserResult = PARSER_RESULT_NOT_KNOWN;
             }
 
-            if (response != NULL)
+            if ((this->parserResult == PARSER_RESULT_PENDING) && (response != NULL) && (response->GetBuffer()->GetBufferOccupiedSpace() > 0))
             {
               receivedSameLength = (response->GetBuffer()->GetBufferOccupiedSpace() == this->lastReceivedLength);
               if (!receivedSameLength)
@@ -250,39 +250,8 @@ HRESULT CMPUrlSourceSplitter_Parser_M3U8::GetParserResult(void)
                                   wchar_t *replacedUrl = ReplaceSchema(this->connectionParameters->GetValue(PARAMETER_NAME_URL, true, NULL), L"m3u8");
                                   CHECK_POINTER_HRESULT(this->parserResult, replacedUrl, this->parserResult, E_OUTOFMEMORY);
 
-                                  CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_COOKIE, true, PARAMETER_NAME_M3U8_COOKIE), this->parserResult, E_OUTOFMEMORY);
-                                  CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_IGNORE_CONTENT_LENGTH, true, PARAMETER_NAME_M3U8_IGNORE_CONTENT_LENGTH), this->parserResult, E_OUTOFMEMORY);
-                                  CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_OPEN_CONNECTION_TIMEOUT, true, PARAMETER_NAME_M3U8_OPEN_CONNECTION_TIMEOUT), this->parserResult, E_OUTOFMEMORY);
-                                  CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_OPEN_CONNECTION_SLEEP_TIME, true, PARAMETER_NAME_M3U8_OPEN_CONNECTION_SLEEP_TIME), this->parserResult, E_OUTOFMEMORY);
-                                  CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_TOTAL_REOPEN_CONNECTION_TIMEOUT, true, PARAMETER_NAME_M3U8_TOTAL_REOPEN_CONNECTION_TIMEOUT), this->parserResult, E_OUTOFMEMORY);
-                                  CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_REFERER, true, PARAMETER_NAME_M3U8_REFERER), this->parserResult, E_OUTOFMEMORY);
-                                  CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_USER_AGENT, true, PARAMETER_NAME_M3U8_USER_AGENT), this->parserResult, E_OUTOFMEMORY);
-                                  CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_HTTP_VERSION, true, PARAMETER_NAME_M3U8_VERSION), this->parserResult, E_OUTOFMEMORY);
                                   CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->CopyParameter(PARAMETER_NAME_URL, true, PARAMETER_NAME_M3U8_PLAYLIST_URL), this->parserResult, E_OUTOFMEMORY);
-
                                   CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->Update(PARAMETER_NAME_URL, true, replacedUrl), this->parserResult, E_OUTOFMEMORY);
-
-                                  // copy current cookies parameters
-                                  if (SUCCEEDED(this->parserResult) && (usedCookies != NULL) && (usedCookies->Count() != 0))
-                                  {
-                                    // first add count of cookies
-                                    wchar_t *cookiesCountValue = FormatString(L"%u", usedCookies->Count());
-                                    CHECK_POINTER_HRESULT(this->parserResult, cookiesCountValue, this->parserResult, E_OUTOFMEMORY);
-
-                                    CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->Update(PARAMETER_NAME_M3U8_COOKIES_COUNT, true, cookiesCountValue), this->parserResult, E_OUTOFMEMORY);
-                                    for (unsigned int i = 0; (SUCCEEDED(this->parserResult) && (i < usedCookies->Count())); i++)
-                                    {
-                                      CParameter *cookie = usedCookies->GetItem(i);
-
-                                      wchar_t *name = FormatString(M3U8_COOKIE_FORMAT_PARAMETER_NAME, i);
-                                      CHECK_POINTER_HRESULT(this->parserResult, name, this->parserResult, E_OUTOFMEMORY);
-
-                                      CHECK_CONDITION_HRESULT(this->parserResult, this->connectionParameters->Update(name, true, cookie->GetValue()), this->parserResult, E_OUTOFMEMORY);
-                                      FREE_MEM(name);
-                                    }
-
-                                    FREE_MEM(cookiesCountValue);
-                                  }
 
                                   // add playlist content to connection parameters
 
@@ -357,6 +326,11 @@ HRESULT CMPUrlSourceSplitter_Parser_M3U8::GetParserResult(void)
 
               this->lastReceivedLength = response->GetBuffer()->GetBufferOccupiedSpace();
             }
+            else
+            {
+              // no data received
+              break;
+            }
           }
         }
       }
@@ -392,24 +366,6 @@ const wchar_t *CMPUrlSourceSplitter_Parser_M3U8::GetName(void)
   return PARSER_NAME;
 }
 
-HRESULT CMPUrlSourceSplitter_Parser_M3U8::Initialize(CPluginConfiguration *configuration)
-{
-  HRESULT result = __super::Initialize(configuration);
-
-  if (SUCCEEDED(result))
-  {
-    CParserPluginConfiguration *parserConfiguration = (CParserPluginConfiguration *)configuration;
-    CHECK_POINTER_HRESULT(result, parserConfiguration, result, E_INVALIDARG);
-  }
-
-  if (SUCCEEDED(result))
-  {
-    this->configuration->LogCollection(this->logger, LOGGER_VERBOSE, PARSER_IMPLEMENTATION_NAME, METHOD_INITIALIZE_NAME);
-  }
-
-  return result;
-}
-
 // ISeeking interface
 
 // IDemuxerOwner interface
@@ -426,6 +382,11 @@ void CMPUrlSourceSplitter_Parser_M3U8::ClearSession(void)
 // IProtocol interface
 
 /* protected methods */
+
+const wchar_t *CMPUrlSourceSplitter_Parser_M3U8::GetModuleName(void)
+{
+  return PARSER_IMPLEMENTATION_NAME;
+}
 
 const wchar_t *CMPUrlSourceSplitter_Parser_M3U8::GetStoreFileNamePart(void)
 {

@@ -91,7 +91,7 @@ ErrorMessage ERROR_MESSAGES[] = {
   { E_F4M_NO_PIECE_OF_MEDIA, L"No stream to play." },
   { E_F4M_NO_MEDIA_URL, L"Stream URL is not specified." },
   { E_F4M_NO_BOOTSTRAP_INFO, L"No bootstrap info to get stream fragments." },
-  { E_F4M_NO_BOOTSTRAP_INFO_VALUE, L"No bootstrap info value to get stream fragments." },
+  { E_F4M_NO_BOOTSTRAP_INFO_VALUE_OR_URL, L"No bootstrap info value or url to get stream fragments." },
   { E_F4M_CANNOT_PARSE_BOOTSTRAP_INFO_BOX, L"Cannot parse bootstrap info." },
   { E_F4M_ONLY_HTTP_PROTOCOL_SUPPORTED_IN_BASE_URL, L"Only HTTP protocol is supported for Adobe HTTP Dynamic Streaming." },
 
@@ -120,13 +120,19 @@ ErrorMessage ERROR_MESSAGES[] = {
   { E_M3U8_INCOMPLETE_TAG, L"Incomplete M3U8 tag found." },
   { E_M3U8_INCOMPLETE_PLAYLIST_TAG, L"Playlist tag is not complete." },
   { E_M3U8_MISSING_REQUIRED_ATTRIBUTE, L"Attribute for playlist tag is missing." },
+  { E_M3U8_NO_PLAYLIST_ITEM_FOR_TAG, L"Missing playlist item to apply tag." },
   { E_M3U8_NOT_PLAYLIST, L"Not M3U8 playlist." },
   { E_M3U8_NOT_SUPPORTED_PLAYLIST_VERSION, L"Not supported playlist version." },
   { E_M3U8_NOT_VALID_PLAYLIST, L"Not valid M3U8 playlist." },
   { E_M3U8_NOT_SUPPORTED_PLAYLIST_ITEM, L"Playlist item is not support in specified playlist version." },
   { E_M3U8_NOT_SUPPORTED_TAG, L"Tag is not support in specified playlist version." },
-  { E_M3U8_NO_PLAYLIST_ITEM_FOR_TAG, L"Missing playlist item to apply tag." },
   { E_M3U8_TAG_IS_NOT_OF_SPECIFIED_TYPE, L"Tag is not of specified type." },
+
+  // authentication error codes
+
+  { E_AUTH_NO_SERVER_USER_NAME, L"Remote server or proxy server account user name is not specified." },
+  { E_AUTH_NO_SERVER_PASSWORD, L"Remote server or proxy server account password is not specified." },
+  { E_AUTH_NO_PROXY_SERVER, L"Proxy server is not specified." },
 
   // specific protocol error codes
 
@@ -235,6 +241,17 @@ ErrorMessage ERROR_MESSAGES[] = {
 
   { E_M3U8_CANNOT_GET_STREAM_FRAGMENTS_FROM_MEDIA_PLAYLIST, L"Cannot get stream fragments from media playlist." },
   { E_M3U8_NO_STREAM_FRAGMENT_TO_DOWNLOAD, L"No stream fragment to download." },
+  { E_M3U8_NO_DECRYPTOR_LOADED, L"No decryptor loaded." },
+  { E_M3U8_DECRYPTION_METHOD_NOT_SUPPORTED, L"Decryption method is not supported." },
+
+  // M3U8 protocol AES128 decryption error codes
+
+  { E_M3U8_AES128_DECRYPTION_FAILED_TO_INITIALIZE, L"Failed to initialize AES-128 decryption method." },
+  { E_M3U8_AES128_DECRYPTION_FAILED_TO_DECRYPT_DATA, L"Failed to decrypt data." },
+  { E_M3U8_AES128_DECRYPTION_FAILED_TO_FINALIZE_DECRYPTION, L"Failed to finalize decryption." },
+  { E_M3U8_AES128_DECRYPTION_DECRYPTED_DATA_LOWER_THAN_ZERO, L"Decrypted data length is lower than zero." },
+  { E_M3U8_AES128_DECRYPTION_DECRYPTED_DATA_GREATER_THAN_ENCRYPTED_DATA, L"Decrypted data length is greater then encrypted data length." },
+  { E_M3U8_AES128_DECRYPTION_INVALID_KEY_LENGTH, L"Invalid decryption key length." },
 
   // last item
   { 0, NULL }
