@@ -178,18 +178,6 @@
     
     
     <control>
-      <description>Date Time</description>
-      <type>label</type>
-      <id>0</id>
-      <posX>1866</posX>
-      <posY>15</posY>
-      <label>#date | #time</label>
-      <align>right</align>
-      <font>Label</font>
-      <textcolor>ff6FAFE1</textcolor>
-      <visible>!player.hasaudio+!player.hasvideo</visible>
-    </control>
-    <control>
       <description>background image</description>
       <type>image</type>
       <id>1</id>

@@ -207,7 +207,7 @@
       <posY>270</posY>
       <width>390</width>
       <height>390</height>
-      <texture">#MP.Thumbs\CDArt\Music\#Play.Current.Artist - #Play.Current.Album.png</texture>
+      <texture>#MP.Thumbs\CDArt\Music\#Play.Current.Artist - #Play.Current.Album.png</texture>
       <visible>[facadeview.list|facadeview.album]+[Control.HasFocus(50)]</visible>
       <keepaspectratio>yes</keepaspectratio>
       <animation effect="rotate" delay="0" end="-360" centre="120,120" time="12000" loop="true" condition="true">Conditional</animation>
