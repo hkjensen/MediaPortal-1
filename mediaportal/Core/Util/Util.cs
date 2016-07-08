@@ -358,16 +358,23 @@ namespace MediaPortal.Util
 
     public static string GetServerNameFromUNCPath(string sFilePath)
     {
-      if (!string.IsNullOrEmpty(sFilePath))
+      try
       {
-        Uri uri = new Uri(sFilePath);
+        if (!string.IsNullOrEmpty(sFilePath))
+        {
+          Uri uri = new Uri(sFilePath);
 
-        if (!uri.IsUnc)
-          return string.Empty;
+          if (!uri.IsUnc)
+            return string.Empty;
 
-        return uri.Host;
+          return uri.Host;
+        }
+        return sFilePath;
       }
-      return sFilePath;
+      catch
+      {
+        return sFilePath;
+      }
     }
 
     public static long GetDiskSize(string drive)
@@ -596,38 +603,6 @@ namespace MediaPortal.Util
         if (extensionFile == ".lnk") return true;
       }
       catch (Exception) {}
-      return false;
-    }
-
-    public static bool CheckServerStatus(string folderName)
-    {
-      if (!Util.Utils.IsUNCNetwork(folderName))
-      {
-        // Check if letter drive is a network drive
-        string detectedFolderName = FindUNCPaths(folderName);
-        if (Util.Utils.IsUNCNetwork(detectedFolderName))
-        {
-          folderName = detectedFolderName;
-        }
-        else
-        {
-          return true;
-        }
-      }
-      
-      string serverName = string.Empty;
-      
-      try
-      {
-        serverName = Util.Utils.GetServerNameFromUNCPath(folderName);
-      }
-      catch { }
-      
-      if (!string.IsNullOrEmpty(serverName))
-      {
-        WakeOnLanManager wakeOnLanManager = new WakeOnLanManager();
-        return wakeOnLanManager.Ping(serverName, 100);
-      }
       return false;
     }
 
@@ -2095,7 +2070,7 @@ namespace MediaPortal.Util
 
     public static void EjectCDROM()
     {
-      EjectCDROM(string.Empty);
+      mciSendString("set cdaudio door open", null, 0, IntPtr.Zero);
     }
     
     public static void CloseCDROM(string driveLetter)
@@ -2427,10 +2402,15 @@ namespace MediaPortal.Util
           //if (bInternal) return false;
           string strPath = xmlreader.GetValueAsString("movieplayer", "path", "");
           string strParams = xmlreader.GetValueAsString("movieplayer", "arguments", "");
-          if (extension.ToLowerInvariant() == ".ifo" || extension.ToLowerInvariant() == ".vob" || extension.ToLowerInvariant() == ".bdmv")
+          if (extension.ToLowerInvariant() == ".ifo" || extension.ToLowerInvariant() == ".vob")
           {
             strPath = xmlreader.GetValueAsString("dvdplayer", "path", "");
             strParams = xmlreader.GetValueAsString("dvdplayer", "arguments", "");
+          }
+          else if  (extension.ToLowerInvariant() == ".bdmv")
+          {
+            strPath = xmlreader.GetValueAsString("bdplayer", "path", "");
+            strParams = xmlreader.GetValueAsString("bdplayer", "arguments", "");
           }
           if (strPath != "")
           {
@@ -2460,7 +2440,7 @@ namespace MediaPortal.Util
                 }
               }
               // %filename% argument handling
-              else if (strParams.IndexOf("%filename%") >= 0)
+              else if (strParams.IndexOf("%filename%", StringComparison.Ordinal) >= 0)
                 strParams = strParams.Replace("%filename%", "\"" + strFile + "\"");
               
               Process movieplayer = new Process();
@@ -2491,7 +2471,8 @@ namespace MediaPortal.Util
                 OnStopExternal(movieplayer, true); // Event: External process stopped
               }
               Log.Debug("Util: External player stopped on {0}", strPath);
-              if (IsISOImage(strFile))
+              // Avoid unMount ISO
+              /*if (IsISOImage(strFile))
               {
                 if (!String.IsNullOrEmpty(DaemonTools.GetVirtualDrive()) &&
                     (g_Player.IsBDDirectory(DaemonTools.GetVirtualDrive()) ||
@@ -2499,13 +2480,10 @@ namespace MediaPortal.Util
                 {
                   DaemonTools.UnMount();
                 }
-              }
+              }*/
               return true;
             }
-            else
-            {
-              Log.Warn("Util: External player {0} does not exists", strPath);
-            }
+            Log.Warn("Util: External player {0} does not exists", strPath);
           }
         }
       }
@@ -4948,8 +4926,6 @@ namespace MediaPortal.Util
       catch (Exception) {}
     }
 
-    //void DeleteOldTimeShiftFiles(string path)
-
     public static void DeleteRecording(string recordingFilename)
     {
       Utils.FileDelete(recordingFilename);
@@ -4969,13 +4945,8 @@ namespace MediaPortal.Util
         {
           try
           {
-            if (fileName.ToLowerInvariant().IndexOf(filename) >= 0)
+            if (fileName.ToLowerInvariant().IndexOf(filename.ToLowerInvariant()) >= 0)
             {
-              //delete all Timeshift buffer files
-              if (fileName.ToLowerInvariant().IndexOf(".sbe") >= 0)
-              {
-                File.Delete(fileName);
-              }
               //delete Thumbnails
               if (fileName.ToLowerInvariant().IndexOf(".jpg") >= 0)
               {
@@ -4988,6 +4959,10 @@ namespace MediaPortal.Util
               }
               //delete Matroska tag file
               if (fileName.ToLowerInvariant().IndexOf(".xml") >= 0)
+              {
+                File.Delete(fileName);
+              }
+              if (fileName.ToLowerInvariant().IndexOf(".nfo") >= 0)
               {
                 File.Delete(fileName);
               }
@@ -5553,6 +5528,22 @@ namespace MediaPortal.Util
       }
 
       return true;
+    }
+
+    /// <summary>
+    /// Focus Mediaportal is visible.
+    /// </summary>
+    public static void SwitchFocus()
+    {
+      // Focus only when MP is not minimize and when SplashScreen is close
+      // Make MediaPortal window normal ( if minimized )
+      Win32API.ShowWindow(GUIGraphicsContext.ActiveForm, Win32API.ShowWindowFlags.ShowNormal);
+
+      // Make Mediaportal window focused
+      if (Win32API.SetForegroundWindow(GUIGraphicsContext.ActiveForm, true))
+      {
+        Log.Info("Util: Successfully switched focus.");
+      }
     }
 
     public static string GetThumbnailPathname(string basePath, string file, string formatString)

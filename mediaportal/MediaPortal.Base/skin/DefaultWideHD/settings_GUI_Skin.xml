@@ -73,6 +73,7 @@
           <label>128</label>
           <onup>17</onup>
           <onright>10</onright>
+          <onleft>9991</onleft>
           <hyperlink>1016</hyperlink>
         </control>
         <control>
@@ -83,6 +84,7 @@
           <hyperlink>1021</hyperlink>
           <onup>9991</onup>
           <onright>10</onright>
+          <onleft>9992</onleft>
         </control>
         <control>
           <description>Screen</description>
@@ -92,6 +94,7 @@
           <hyperlink>9</hyperlink>
           <onup>9992</onup>
           <onright>10</onright>
+          <onleft>9993</onleft>
         </control>
         <control>
           <description>TV</description>
@@ -101,6 +104,7 @@
           <hyperlink>700</hyperlink>
           <onup>9993</onup>
           <onright>10</onright>
+          <onleft>9994</onleft>
         </control>
         <control>
           <description>My Pictures</description>
@@ -110,6 +114,7 @@
           <hyperlink>12</hyperlink>
           <onup>9994</onup>
           <onright>10</onright>
+          <onleft>9995</onleft>
         </control>
         <control>
           <description>Movies</description>
@@ -119,6 +124,7 @@
           <hyperlink>703</hyperlink>
           <onup>9995</onup>
           <onright>10</onright>
+          <onleft>9996</onleft>
         </control>
         <control>
           <description>My DVD</description>
@@ -128,6 +134,7 @@
           <hyperlink>704</hyperlink>
           <onup>9996</onup>
           <onright>10</onright>
+          <onleft>9997</onleft>
         </control>
         <control>
           <description>BluRay</description>
@@ -137,6 +144,7 @@
           <hyperlink>1024</hyperlink>
           <onup>9997</onup>
           <onright>10</onright>
+          <onleft>9998</onleft>
         </control>
         <control>
           <description>My Music</description>
@@ -147,6 +155,7 @@
           <ondown>99910</ondown>
           <onup>9998</onup>
           <onright>10</onright>
+          <onleft>9999</onleft>
         </control>
         <control>
           <description>MiniDisplay</description>
@@ -157,6 +166,7 @@
           <ondown>9991</ondown>
           <onup>9999</onup>
           <onright>10</onright>
+          <onleft>99910</onleft>
           <visible>plugin.isenabled(MiniDisplay)</visible>
         </control>
       </control>
@@ -226,7 +236,7 @@
           <width>550</width>
           <label>300137</label>
           <onup>11</onup>
-          <ondown>42</ondown>
+          <ondown>32</ondown>
           <onright>14</onright>
           <onleft>9991</onleft>
         </control>
@@ -237,7 +247,7 @@
         <posX>700</posX>
         <posY>585</posY>
         <width>500</width>
-        <label>OSD + WorldNews Ticker</label>
+        <label>WorldNews Ticker</label>
         <textcolor>white</textcolor>
         <font>Label</font>
       </control>
@@ -249,20 +259,6 @@
         <dimColor>ffffffff</dimColor>
         <layout>StackLayout(0, Vertical, true)</layout>
         <control>
-          <description>TV Stream info visible</description>
-          <type>checkbutton</type>
-          <id>42</id>
-          <posX>685</posX>
-          <posY>683</posY>
-          <width>550</width>
-          <label>#SkinTranslation.Translations.tvstreaminfo.Label</label>
-          <selected>#(skin.hassetting('#skin.tv.streaminfo'))</selected>
-          <onclick>#(skin.togglesetting('#skin.tv.streaminfo'))</onclick>
-          <onup>14</onup>
-          <ondown>32</ondown>
-          <onright>42</onright>
-        </control>
-        <control>
           <description>WorldNews Ticker</description>
           <type>checkbutton</type>
           <id>32</id>
@@ -270,16 +266,17 @@
           <label>#SkinTranslation.Translations.WorldNewsTicker.Label</label>
           <selected>#(skin.hassetting('#skin.worldnewsticker'))</selected>
           <onclick>#(skin.togglesetting('#skin.worldnewsticker'))</onclick>
-          <onup>42</onup>
+          <onup>14</onup>
           <ondown>33</ondown>
-          <onright>1032000</onright>
+          <onright>32</onright>
+          <onleft>9991</onleft>
         </control>
       </control>
       <control>
         <type>label</type>
         <id>1</id>
         <posX>700</posX>
-        <posY>800</posY>
+        <posY>740</posY>
         <width>500</width>
         <label>#(L(600)) #(L(300160))</label>
         <textcolor>white</textcolor>
@@ -290,7 +287,7 @@
         <type>menubutton</type>
         <id>33</id>
         <posX>655</posX>
-        <posY>850</posY>
+        <posY>790</posY>
         <width>550</width>
         <mode>dialoglist</mode>
         <dialogTitle>#(L(600)) #(L(300160))</dialogTitle>
@@ -311,9 +308,9 @@
         <type>label</type>
         <id>1</id>
         <posX>1300</posX>
-        <posY>675</posY>
+        <posY>615</posY>
         <width>500</width>
-        <label>Fanart</label>
+        <label>Fanart BasicHome</label>
         <textcolor>white</textcolor>
         <font>Label</font>
         <visible>string.equals(#hedit.mode,Horizontal Text only)</visible>
@@ -322,10 +319,9 @@
         <description>buttons</description>
         <type>group</type>
         <posX>1270</posX>
-        <posY>720</posY>
+        <posY>670</posY>
         <dimColor>ffffffff</dimColor>
         <layout>StackLayout(0, Vertical, true)</layout>
-        <visible>string.equals(#hedit.mode,Horizontal Text only)</visible>
         <control>
           <description>Video Fanart BasicHome</description>
           <type>checkbutton</type>
@@ -337,7 +333,8 @@
           <onup>33</onup>
           <ondown>31</ondown>
           <onright>30</onright>
-          <onleft>9991</onleft>
+          <onleft>10</onleft>
+          <visible>string.equals(#hedit.mode,Horizontal Text only)</visible>
         </control>
         <control>
           <description>Music Fanart BasicHome</description>
@@ -350,7 +347,8 @@
           <onup>30</onup>
           <ondown>37</ondown>
           <onright>31</onright>
-          <onleft>9991</onleft>
+          <onleft>10</onleft>
+          <visible>string.equals(#hedit.mode,Horizontal Text only)</visible>
         </control>
         <control>
           <description>Music Fanart NowPlaying BasicHome</description>
@@ -363,7 +361,8 @@
           <onup>31</onup>
           <ondown>10</ondown>
           <onright>37</onright>
-          <onleft>9991</onleft>
+          <onleft>10</onleft>
+          <visible>string.equals(#hedit.mode,Horizontal Text only)</visible>
         </control>
       </control>
       <control>
@@ -371,7 +370,7 @@
         <type>image</type>
         <id>20</id>
         <posX>1290</posX>
-        <posY>330</posY>
+        <posY>280</posY>
         <width>552</width>
         <height>310</height>
         <keepaspectratio>no</keepaspectratio>
