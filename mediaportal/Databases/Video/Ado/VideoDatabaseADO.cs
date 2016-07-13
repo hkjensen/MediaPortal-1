@@ -7030,7 +7030,29 @@ namespace MediaPortal.Video.Database.SqlServer
         return result;
     }
     private static void RemoveInvalidChars(ref string strtxt)
-    { 
+    {
+      strtxt =  Regex.Replace(strtxt, @"[\x00'""\b\n\r\t\cZ\\%_]",
+        delegate(Match match)
+        {
+          string v = match.Value;
+          switch (v)
+          {
+            case "\x00":            // ASCII NUL (0x00) character
+              return "\\0";
+            case "\b":              // BACKSPACE character
+              return "\\b";
+            case "\n":              // NEWLINE (linefeed) character
+              return "\\n";
+            case "\r":              // CARRIAGE RETURN character
+              return "\\r";
+            case "\t":              // TAB
+              return "\\t";
+            case "\u001A":          // Ctrl-Z
+              return "\\Z";
+            default:
+              return "\\" + v;
+          }
+        });
     }
   }
 }
