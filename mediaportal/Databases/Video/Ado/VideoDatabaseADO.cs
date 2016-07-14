@@ -235,8 +235,7 @@ namespace MediaPortal.Video.Database.SqlServer
 
       string origStrFileName = strFileName;
 
-      strFileName = strFileName.Replace("\\", "\\\\").Trim();
-      strFileName = strFileName.Replace("'", "\\'").Trim();
+      strFileName = RemoveInvalidChars(strFileName.Trim());
       if (!IsConnected())
       {
         return -1;
@@ -244,10 +243,10 @@ namespace MediaPortal.Video.Database.SqlServer
       try
       {
         int lFileId = -1;
-        strFileName = strFileName.Trim();
+        //strFileName = strFileName.Trim();
 
         string strSQL = String.Format("SELECT * FROM files WHERE idmovie={0} AND idpath={1} AND strFileName = '{2}'",
-                                lMovieId, lPathId, strFileName.Replace("'","''"));
+                                lMovieId, lPathId, strFileName);
 
         var query = _connection.ExecuteStoreQuery<Databases.file>(strSQL).FirstOrDefault();
 
@@ -259,7 +258,7 @@ namespace MediaPortal.Video.Database.SqlServer
         }
 
         string strInsertSQL = String.Format("INSERT INTO files (idFile, idMovie,idPath, strFileName) VALUES(null, {0},{1},'{2}')",
-                       lMovieId, lPathId, strFileName.Replace("'","''"));
+                       lMovieId, lPathId, strFileName);
 
         _connection.ExecuteStoreCommand(strInsertSQL);
 
@@ -328,7 +327,7 @@ namespace MediaPortal.Video.Database.SqlServer
         DatabaseUtility.RemoveInvalidChars(ref strPath);
         DatabaseUtility.RemoveInvalidChars(ref strFileName);
         lPathId = GetPath(strPath);
-        strFileName = strFileName.Replace("\\", "\\\\").Trim();
+        strFileName = RemoveInvalidChars(strFileName.Trim());
         if (lPathId < 0)
         {
           return -1;
@@ -442,17 +441,16 @@ namespace MediaPortal.Video.Database.SqlServer
 
         string cdlabel = GetDVDLabel(strPath);
         RemoveInvalidChars(ref cdlabel);
-        strPath = strPath.Replace("\\", "\\\\").Trim();
-        strPath = strPath.Replace("'", "\\'").Trim();
+        RemoveInvalidChars(ref strPath);
 
-        string strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}' AND cdlabel like '{1}'", strPath.Replace("'", "''"),
-                              cdlabel.Replace("'", "''"));
+        string strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}' AND cdlabel like '{1}'", strPath,
+                              cdlabel);
 
         var query = _connection.ExecuteStoreQuery<Databases.path>(strSQL).FirstOrDefault();
 
         if (query == null)
         {
-            string strInsertSQL = String.Format("INSERT INTO Path (strPath, cdlabel) VALUES('{0}', '{1}')", strPath.Replace("'", "''"),
+            string strInsertSQL = String.Format("INSERT INTO Path (strPath, cdlabel) VALUES('{0}', '{1}')", strPath,
                        cdlabel);
 
           _connection.ExecuteStoreCommand(strInsertSQL);
@@ -485,7 +483,8 @@ namespace MediaPortal.Video.Database.SqlServer
 
         string cdlabel = string.Empty;
         string strSQL = string.Empty;
-        strPath = strPath.Replace("\\", "\\\\").Trim();
+        //strPath = strPath.Replace("\\", "\\\\").Trim();
+        RemoveInvalidChars(ref strPath);
 
         if (Util.Utils.IsDVD(strPath))
         {
@@ -494,11 +493,11 @@ namespace MediaPortal.Video.Database.SqlServer
           RemoveInvalidChars(ref cdlabel);
           strPath = strPath.Replace(strPath.Substring(0, 1), "_");
 
-          strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}' AND cdlabel LIKE '{1}'", strPath.Replace("'", "''"), cdlabel.Replace("'", "\'"));
+          strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}' AND cdlabel LIKE '{1}'", strPath, cdlabel);
         }
         else
         {
-          strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}'", strPath.Replace("'", "''"));
+          strSQL = String.Format("SELECT * FROM path WHERE strPath = '{0}'", strPath);
         }
 
         var query = _connection.ExecuteStoreQuery<Databases.path>(strSQL).FirstOrDefault();
@@ -1876,7 +1875,7 @@ namespace MediaPortal.Video.Database.SqlServer
     {
       try
       {
-        string strSQL = string.Format("SELECT * FROM actors WHERE strActor LIKE '%" + strActorName.Replace("'","''") + "%'");
+        string strSQL = string.Format("SELECT * FROM actors WHERE strActor LIKE '%" + strActorName.Replace("'","\'") + "%'");
 
         var query = _connection.ExecuteStoreQuery<Databases.actor>(strSQL).FirstOrDefault();
 
@@ -2211,11 +2210,11 @@ namespace MediaPortal.Video.Database.SqlServer
         VideoDatabase.GetMovieInfoById(details1.ID, ref existingDetails);
         // Cast
         string strLine = details1.Cast;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.Cast = strLine;
         // Director
         strLine = details1.Director;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.Director = strLine;
         // add director Id
         int lDirector = -1;
@@ -2272,27 +2271,27 @@ namespace MediaPortal.Video.Database.SqlServer
         }
         // Plot
         strLine = details1.Plot;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.Plot = strLine;
         // User Review
         strLine = details1.UserReview;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.UserReview = strLine;
         // Plot outline
         strLine = details1.PlotOutline;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.PlotOutline = strLine;
         // Tagline
         strLine = details1.TagLine;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.TagLine = strLine;
         // Cover
         strLine = details1.ThumbURL;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.ThumbURL = strLine;
         // Fanart
         strLine = details1.FanartURL;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.FanartURL = strLine;
         // Date Added
         details1.DateAdded = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
@@ -2312,18 +2311,18 @@ namespace MediaPortal.Video.Database.SqlServer
         }
         // Search string
         strLine = details1.SearchString;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.SearchString = strLine;
         // Title
         strLine = details1.Title.Trim();
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.Title = strLine;
         // SortTtitle
         strLine = details1.SortTitle.Trim();
 
         if (!string.IsNullOrEmpty(strLine))
         {
-          RemoveInvalidChars(ref strLine);
+          //RemoveInvalidChars(ref strLine);
           details1.SortTitle = strLine;
         }
         else
@@ -2332,37 +2331,37 @@ namespace MediaPortal.Video.Database.SqlServer
         }
         // Votes
         strLine = details1.Votes;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.Votes = strLine;
         // Writers
         strLine = details1.WritingCredits;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.WritingCredits = strLine;
         // Genres
         //Clear old genres link for movie
         RemoveGenresForMovie(lMovieId);
         strLine = details1.Genre;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.Genre = strLine;
         // IMDB Movie ID
         strLine = details1.IMDBNumber;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.IMDBNumber = strLine;
         // MPAA Rating
         strLine = details1.MPARating;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.MPARating = strLine;
         // Studios
         strLine = details1.Studios;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.Studios = strLine;
         // Country
         strLine = details1.Country;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.Country = strLine;
         // Language
         strLine = details1.Language;
-        RemoveInvalidChars(ref strLine);
+        //RemoveInvalidChars(ref strLine);
         details1.Language = strLine;
         // Last update
         if (updateTimeStamp)
