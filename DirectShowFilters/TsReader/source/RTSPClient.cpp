@@ -15,8 +15,11 @@
 extern void LogDebug(const char* fmt, ...);
 extern DWORD m_tGTStartTime;
 
+// unit = milliseconds
+#define TIMEOUT_GENERIC_RTSP_RESPONSE 500
 
-#define TIMEOUT_GENERIC_RTSP_RESPONSE 500   // unit = milliseconds
+//Size in bytes of the CMemorySink buffer (TRANSPORT_PACKET_SIZE * TRANSPORT_PACKETS_PER_NETWORK_PACKET * 15)
+#define MEM_SINK_BUF_SIZE (188*7*15)
 
 
 CRTSPClient::CRTSPClient(CMemoryBuffer& buffer)
@@ -165,8 +168,6 @@ void CRTSPClient::Shutdown()
     Medium::close(m_client);
     m_client = NULL;
   }
-
-  m_buffer.Clear();
 }
 
 bool CRTSPClient::OpenStream(char* url)
@@ -264,8 +265,8 @@ bool CRTSPClient::OpenStream(char* url)
     {
       continue;
     }
-		
-    CMemorySink* fileSink = CMemorySink::createNew(*m_env, m_buffer, 20000/*buffer size*/);
+    		
+    CMemorySink* fileSink = CMemorySink::createNew(*m_env, m_buffer, MEM_SINK_BUF_SIZE);
     subsession->sink = fileSink;
     if (subsession->sink == NULL) 
     {
@@ -290,6 +291,7 @@ void CRTSPClient::Stop()
 {
   LogDebug("CRTSPClient:Stop()");
   Shutdown();
+  m_buffer.Clear();
   LogDebug("CRTSPClient:Stop(): done");
 }
 
@@ -386,22 +388,23 @@ bool CRTSPClient::Play(double start, double duration)
     }
   }
 
-  long dur = m_duration / 1000;
-  if (duration > 0.0)
+  //Sanity check the start value
+  double dur = ((double)m_duration) / 1000.0;
+  double maxDur = fmax(dur, duration); //Allow for m_duration being too low when timeshifting (value only updated every 4 seconds)
+  if (maxDur > 0.0)
   {
-    double remainingDuration = duration - start;
-    if (remainingDuration < 0)
-    {
-      remainingDuration = 0;
-    }
-    start = dur - remainingDuration;
-    if (start < 0)
-    {
-      start = 0;
-    }
+    start = fmin(start, maxDur);
+  }
+  else
+  {
+    start = 0.0;
+  }
+  if (start < 0.0)
+  {
+    start = 0.0;
   }
 
-  LogDebug("CRTSPClient::Play(): start = %f, duration = %f", (float)start, (float)duration);
+  LogDebug("CRTSPClient::Play(): start = %f, duration = %f, m_duration = %f", (float)start, (float)duration, (float)dur);
   StartBufferThread();  // Note: thread expected to be running already. This is for "safety".
   if (!InternalPlay(start)) 
   {
@@ -413,7 +416,7 @@ bool CRTSPClient::Play(double start, double duration)
 
 void CRTSPClient::Continue()
 {
-  if (m_client != NULL && m_session != NULL)
+  if (m_client != NULL && m_session != NULL && m_isPaused)
   {
     InternalPlay(-1.0);
   }
@@ -421,25 +424,25 @@ void CRTSPClient::Continue()
 
 bool CRTSPClient::InternalPlay(double startPoint)
 {
-  LogDebug("CRTSPClient::Play()");
+  LogDebug("CRTSPClient::InternalPlay() - start = %f", (float)startPoint);
   if (m_client != NULL && m_session != NULL)
   {
     ResetEvent(m_genericResponseEvent);
     m_client->sendPlayCommand(*m_session, &CRTSPClient::OnGenericResponseReceived, startPoint);
     if (WaitForSingleObject(m_genericResponseEvent, TIMEOUT_GENERIC_RTSP_RESPONSE) == WAIT_TIMEOUT)
     {
-      LogDebug("CRTSPClient::Play(): RTSP PLAY timed out");
+      LogDebug("CRTSPClient::InternalPlay(): RTSP PLAY timed out");
       return false;
     }
     if (m_genericResponseResultCode != 0)
 	  {
-      LogDebug("CRTSPClient::Play(): RTSP PLAY failed, result code = %d, message = %s", m_genericResponseResultCode, m_env->getResultMsg());
+      LogDebug("CRTSPClient::InternalPlay(): RTSP PLAY failed, result code = %d, message = %s", m_genericResponseResultCode, m_env->getResultMsg());
       return false;
     }
 
     m_isPaused = false;
   }
-  LogDebug("CRTSPClient::Play(): done");
+  LogDebug("CRTSPClient::InternalPlay(): done");
   return true;
 }
 

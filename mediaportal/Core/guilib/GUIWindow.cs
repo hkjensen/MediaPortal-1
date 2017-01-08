@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -233,6 +234,9 @@ namespace MediaPortal.GUI.Library
     private Object instance;
     protected string _loadParameter = null;
     private bool _skipAnimation = false;
+    private static bool _loadSkinResult = false;
+    protected internal static bool _loadSkinDone = false;
+    private static bool isSkinXMLLoading = false;
 
     //-1=default from topbar.xml 
     // 0=flase from skin.xml
@@ -252,7 +256,7 @@ namespace MediaPortal.GUI.Library
 
     private VisualEffect _showAnimation = new VisualEffect(); // for dialogs
     private VisualEffect _closeAnimation = new VisualEffect();
-    public static readonly SynchronizationContext _mainThreadContext = SynchronizationContext.Current;
+    public static SynchronizationContext _mainThreadContext = SynchronizationContext.Current;
 
     #endregion
 
@@ -475,10 +479,7 @@ namespace MediaPortal.GUI.Library
       }
 
       // else load xml file now
-      GUIWindow._mainThreadContext.Send(delegate
-      {
-        LoadSkin();
-      }, null);
+      LoadSkin();
 
       if (!_windowAllocated)
       {
@@ -489,20 +490,45 @@ namespace MediaPortal.GUI.Library
 
     }
 
+    public bool LoadSkin()
+    {
+      if (Thread.CurrentThread.Name != "MPMain" && Thread.CurrentThread.Name != "Config Main")
+      {
+        if (!GUIWindow._loadSkinDone)
+        {
+          GUIWindow._loadSkinDone = true;
+          if (!isSkinXMLLoading)
+          {
+            int result = GUIWindowManager.SendThreadCallbackSkin(LoadSkinThreaded, 0, 0, null);
+          }
+        }
+        return _loadSkinResult;
+      }
+      return LoadSkinBool();
+    }
+
+    public int LoadSkinThreaded(int p1, int p2, object s)
+    {
+      _loadSkinResult = LoadSkinBool();
+      Log.Debug("LoadSkinThreaded() done with return value : {0}", _loadSkinResult);
+      GUIWindow._loadSkinDone = false;
+      return p1;
+    }
+
     /// <summary>
     /// Loads the xml file for the window.
     /// </summary>
     /// <returns></returns>
-    public bool LoadSkin()
+    public bool LoadSkinBool()
     {
-
       // add thread check to log calls not running in main thread/GUI
       String threadName = Thread.CurrentThread.Name;
       if (threadName != "MPMain" && threadName != "Config Main")
       {
         if (threadName != null)
         {
-          Log.Error("LoadSkin: Running on wrong thread name [{0}] - StackTrace: '{1}'", threadName, Environment.StackTrace);
+          Log.Error("LoadSkin: Running on wrong thread name [{0}] - StackTrace: '{1}'", threadName,
+            Environment.StackTrace);
         }
         else
         {
@@ -510,15 +536,21 @@ namespace MediaPortal.GUI.Library
         }
       }
 
+      if (isSkinXMLLoading)
+        Log.Error("LoadSkin: Running already so skipping");
+
+      isSkinXMLLoading = true;
       _lastSkin = GUIGraphicsContext.Skin;
       // no filename is configured
       if (_windowXmlFileName == "")
       {
+        isSkinXMLLoading = false;
         return false;
       }
       // TODO what is the reason for this check
       if (Children.Count > 0)
       {
+        isSkinXMLLoading = false;
         return false;
       }
 
@@ -529,7 +561,8 @@ namespace MediaPortal.GUI.Library
       // Load the reference controls
       //int iPos = _windowXmlFileName.LastIndexOf('\\');
       //string strReferenceFile = _windowXmlFileName.Substring(0, iPos);
-      _windowXmlFileName = GUIGraphicsContext.GetThemedSkinFile(_windowXmlFileName.Substring(_windowXmlFileName.LastIndexOf("\\")));
+      _windowXmlFileName =
+        GUIGraphicsContext.GetThemedSkinFile(_windowXmlFileName.Substring(_windowXmlFileName.LastIndexOf("\\")));
       string strReferenceFile = GUIGraphicsContext.GetThemedSkinFile(@"\references.xml");
 
       GUIControlFactory.LoadReferences(strReferenceFile);
@@ -541,12 +574,14 @@ namespace MediaPortal.GUI.Library
         doc.Load(_windowXmlFileName);
         if (doc.DocumentElement == null)
         {
+          isSkinXMLLoading = false;
           return false;
         }
         string root = doc.DocumentElement.Name;
         // Check root element
         if (root != "window")
         {
+          isSkinXMLLoading = false;
           return false;
         }
 
@@ -569,12 +604,14 @@ namespace MediaPortal.GUI.Library
         XmlNode nodeId = doc.DocumentElement.SelectSingleNode("/window/id");
         if (nodeId == null)
         {
+          isSkinXMLLoading = false;
           return false;
         }
         // Set the default control that has the focus after loading the window
         XmlNode nodeDefault = doc.DocumentElement.SelectSingleNode("/window/defaultcontrol");
         if (nodeDefault == null)
         {
+          isSkinXMLLoading = false;
           return false;
         }
         // Convert the id to an int
@@ -703,7 +740,8 @@ namespace MediaPortal.GUI.Library
         _rememberLastFocusedControl = false;
         if (GUIGraphicsContext.AllowRememberLastFocusedItem)
         {
-          XmlNode nodeRememberLastFocusedControl = doc.DocumentElement.SelectSingleNode("/window/rememberLastFocusedControl");
+          XmlNode nodeRememberLastFocusedControl =
+            doc.DocumentElement.SelectSingleNode("/window/rememberLastFocusedControl");
           if (nodeRememberLastFocusedControl != null)
           {
             string rememberLastFocusedControlStr = nodeRememberLastFocusedControl.InnerText.ToLowerInvariant();
@@ -734,13 +772,16 @@ namespace MediaPortal.GUI.Library
                 {
                   try
                   {
-                    loadInclude = bool.Parse(GUIPropertyManager.Parse(node.Attributes["condition"].Value, GUIExpressionManager.ExpressionOptions.EVALUATE_ALWAYS));
+                    loadInclude =
+                      bool.Parse(GUIPropertyManager.Parse(node.Attributes["condition"].Value,
+                        GUIExpressionManager.ExpressionOptions.EVALUATE_ALWAYS));
                   }
                   catch (FormatException)
                   {
                     // The include will not be loaded if the expression could not be evaluated.
                     loadInclude = false;
-                    Log.Debug("LoadSkin: {0}, could not evaluate include expression '{1}' ", _windowXmlFileName, node.Attributes["condition"].Value);
+                    Log.Debug("LoadSkin: {0}, could not evaluate include expression '{1}' ", _windowXmlFileName,
+                      node.Attributes["condition"].Value);
                   }
                 }
 
@@ -761,17 +802,21 @@ namespace MediaPortal.GUI.Library
         // initialize the controls
         OnWindowLoaded();
         _isSkinLoaded = true;
+        isSkinXMLLoading = false;
+
         return true;
       }
       catch (FileNotFoundException e)
       {
         Log.Error("SKIN: Missing {0}", e.FileName);
+        isSkinXMLLoading = false;
         return false;
       }
       catch (Exception ex)
       {
         Log.Error("exception loading window {0} err:{1}\r\n\r\n{2}\r\n\r\n", _windowXmlFileName, ex.Message,
-                  ex.StackTrace);
+          ex.StackTrace);
+        isSkinXMLLoading = false;
         return false;
       }
     }
@@ -1070,10 +1115,7 @@ namespace MediaPortal.GUI.Library
     {
       if (_isSkinLoaded && (_lastSkin != GUIGraphicsContext.Skin))
       {
-        GUIWindow._mainThreadContext.Send(delegate
-        {
-          LoadSkin();
-        }, null);
+        LoadSkin();
       }
 
       if (_rememberLastFocusedControl && _rememberLastFocusedControlId >= 0)
@@ -1134,7 +1176,21 @@ namespace MediaPortal.GUI.Library
               {
                 break;
               }
+              if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR && switching && GUIGraphicsContext.InVmr9Render)
+              {
+                // Some plugin get stuck in loop when madVR in use because it waiting madVR change that was already done before
+                Log.Debug("GUIWindow: OnPageDestroy for madVR");
+                _closeAnimation.QueuedProcess = AnimationProcess.None;
+                _closeAnimation.CurrentProcess = AnimationProcess.None;
+                _showAnimation.QueuedProcess = AnimationProcess.None;
+                _showAnimation.CurrentProcess = AnimationProcess.None;
+                IsAnimating(AnimationType.None);
+              }
               GUIWindowManager.Process();
+              if (GUIWindow._loadSkinDone)
+              {
+                break;
+              }
             }
             GUIWindowManager.IsSwitchingToNewWindow = switching;
             foreach (GUIControl control in controlList)
@@ -1202,10 +1258,7 @@ namespace MediaPortal.GUI.Library
 
         Dispose();
 
-        GUIWindow._mainThreadContext.Send(delegate
-        {
-          LoadSkin();
-        }, null);
+        LoadSkin();
 
         HashSet<int> faultyControl = new HashSet<int>();
         // tell every control we're gonna alloc the resources next
@@ -1213,7 +1266,10 @@ namespace MediaPortal.GUI.Library
         {
           try
           {
-            Children[i].PreAllocResources();
+            if (Children.Count > 0)
+            {
+              Children[i].PreAllocResources();
+            }
           }
           catch (Exception ex1)
           {
@@ -1229,7 +1285,10 @@ namespace MediaPortal.GUI.Library
           {
             if (!faultyControl.Contains(i))
             {
-              Children[i].AllocResources();
+              if (Children.Count > 0)
+              {
+                Children[i].AllocResources();
+              }
             }
             else
             {
@@ -1414,10 +1473,13 @@ namespace MediaPortal.GUI.Library
         }
         else
         {
-          var guicontrol = child;
-          if (guicontrol.Focus)
+          if (child != null)
           {
-            return guicontrol.GetID;
+            var guicontrol = child;
+            if (guicontrol.Focus)
+            {
+              return guicontrol.GetID;
+            }
           }
         }
       }
@@ -1504,14 +1566,16 @@ namespace MediaPortal.GUI.Library
 
         UpdateOverlayAllowed();
         _hasWindowVisibilityUpdated = true;
-        // TODO must do a proper fix
-        for (int i = 0; i < Children.Count; i++)
+        // TODO must do a proper fix (Flickering on TVGuide)
+        if (Children != null)
         {
-          GUIControl control = Children[i];
-          control.UpdateVisibility();
-          control.DoRender(timePassed, currentTime);
+          foreach (GUIControl control in Children.ToList())
+          {
+            control.UpdateVisibility();
+            control.DoRender(timePassed, currentTime);
+          }
         }
-        
+
         GUIWaitCursor.Render();
       }
       catch (Exception ex)
@@ -1750,10 +1814,7 @@ namespace MediaPortal.GUI.Library
               }
               else
               {
-                GUIWindow._mainThreadContext.Send(delegate
-                {
-                  LoadSkin();
-                }, null);
+                LoadSkin();
 
                 if (!_windowAllocated)
                 {
@@ -1824,6 +1885,7 @@ namespace MediaPortal.GUI.Library
               }
 
               _skipAnimation = false;
+
               return true;
               // TODO BUG ! Check if this return needs to be in the case and if there needs to be a break statement after each case.
 
@@ -1842,6 +1904,16 @@ namespace MediaPortal.GUI.Library
 #endif
                 _shouldRestore = true;
                 _skipAnimation = false;
+
+                // madVR
+                //set video window position
+                if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR &&
+                    GUIGraphicsContext.Vmr9Active && !GUIGraphicsContext.IsFullScreenVideo)
+                {
+                  GUIGraphicsContext.VideoWindow = new Rectangle(0, 0, 5, 5);
+                  VMR9Util.g_vmr9.SceneMadVr();
+                  GUIGraphicsContext.IsWindowVisible = true;
+                }
                 return true;
               }
 
@@ -1879,6 +1951,7 @@ namespace MediaPortal.GUI.Library
                 }
                 return true;
               }
+
           }
 
           GUIControl cntlTarget = GetControl(message.TargetControlId);
@@ -2132,7 +2205,15 @@ namespace MediaPortal.GUI.Library
       {
         if (control.IsEffectAnimating(animType))
         {
-          return true;
+          if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR &&
+              GUIGraphicsContext.InVmr9Render)
+          {
+            // Do nothing
+          }
+          else
+          {
+            return true;
+          }
         }
       }
       return false;
