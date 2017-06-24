@@ -850,6 +850,7 @@ namespace MediaPortal.Configuration.Sections
       tbStudio.Text = movie.Studios;
       tbLanguage.Text = movie.Language;
       tbCountry.Text = movie.Country;
+      tbAwards.Text = movie.MovieAwards;
       DateTime added;
       DateTime.TryParseExact(movie.DateAdded, "yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture, DateTimeStyles.None, out added);
       tbAdded.Text = "Added: " + added;
@@ -880,6 +881,7 @@ namespace MediaPortal.Configuration.Sections
 
       tbPlotOutline.Text = movie.PlotOutline;
       tbMPAARating.Text = movie.MPARating;
+      tbMPAARatingText.Text = movie.MPAAText;
       tbDuration.Text = movie.RunTime.ToString();
 
       if (movie.Watched > 0)
@@ -1930,6 +1932,7 @@ namespace MediaPortal.Configuration.Sections
           movie.Director = tbDirector.Text;
           movie.DirectorID = Convert.ToInt32(tbDirectorId.Text);
           movie.MPARating = tbMPAARating.Text;
+          movie.MPAAText = tbMPAARatingText.Text;
           movie.RunTime = Int32.Parse(tbDuration.Text);
           movie.WritingCredits = tbWritingCredits.Text;
           movie.Studios = tbStudio.Text;
@@ -1945,6 +1948,7 @@ namespace MediaPortal.Configuration.Sections
           movie.FanartURL = (_useLocalImageFanart ? "file://" + tbFanartLocation.Text : tbFanartLocation.Text);
           movie.Votes = tbVotes.Text;
           movie.PlotOutline = tbPlotOutline.Text;
+          movie.MovieAwards = tbAwards.Text;
         }
         
         foreach (ListViewItem item in listViewGenres.Items)
