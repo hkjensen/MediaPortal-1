@@ -523,7 +523,6 @@ ${MementoSection} "MediaPortal TV Server" SecServer
   File "${git_TVServer}\TVDatabase\references\Gentle.Provider.SQLServer.dll"
   File "${git_TVServer}\TVDatabase\references\log4net.dll"
   File "${git_TVServer}\TVDatabase\references\MySql.Data.dll"
-;  File "${git_ROOT}\Packages\\MySql.Data.6.7.9\lib\net40\MySQL.dll"
   File "${git_TVServer}\TVDatabase\TvBusinessLayer\bin\${BUILD_TYPE}\TvBusinessLayer.dll"
   File "${git_TVServer}\TvLibrary.Interfaces\bin\${BUILD_TYPE}\TvLibrary.Interfaces.dll"
   File "${git_TVServer}\TVLibrary\bin\${BUILD_TYPE}\TVLibrary.dll"
@@ -531,7 +530,8 @@ ${MementoSection} "MediaPortal TV Server" SecServer
   File "${git_TVServer}\TvService\bin\${BUILD_TYPE}\TvService.exe.config"
   File "${git_TVServer}\SetupControls\bin\${BUILD_TYPE}\SetupControls.dll"
   File "${git_TVServer}\TVLibrary.Utils\bin\${BUILD_TYPE}\TVLibrary.Utils.dll"
-  
+  ;File "${git_TVServer}\TVLibrary.Utils\bin\${BUILD_TYPE}\Interop.SHDocVw.dll"
+
   ; MP2 assemblies
   File "${TVSERVER.BASE}\HttpServer.dll"
   File "${TVSERVER.BASE}\MediaPortal.Utilities.dll"
