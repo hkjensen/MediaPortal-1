@@ -5091,21 +5091,21 @@ namespace MediaPortal.Configuration.Sections
     // Import nfo xml
     private void buttonImportNfo_Click(object sender, EventArgs e)
     {
-      
+
       FolderBrowserDialog fBrowser = new FolderBrowserDialog();
-      if (tbImportNFOspath.TextLength == 0)
+      if (tbNFOsImportPath.TextLength == 0)
       {
-          if (fBrowser.ShowDialog(this) != DialogResult.OK)
-          {
-              return;
-          }
-          else
-          {
-              tbImportNFOspath.Text = fBrowser.SelectedPath;
-          }
+        if (fBrowser.ShowDialog(this) != DialogResult.OK)
+        {
+          return;
+        }
+        else
+        {
+          tbNFOsImportPath.Text = fBrowser.SelectedPath;
+        }
       }
       _nfoFiles = new ArrayList();
-      GetNfoFiles(tbImportNFOspath.Text, ref _nfoFiles);
+      GetNfoFiles(tbNFOsImportPath.Text, ref _nfoFiles);
 
       if (_nfoFiles.Count == 0)
       {
@@ -5712,9 +5712,5 @@ namespace MediaPortal.Configuration.Sections
         buttonMapGenre_Click(sender, e);
     }
 
-    private void tbImportNFOspath_TextChanged(object sender, EventArgs e)
-    {
-
-    }
   }
 }
