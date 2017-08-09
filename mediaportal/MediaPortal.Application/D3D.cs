@@ -504,18 +504,6 @@ namespace MediaPortal
         GUIGraphicsContext.DX9Device.DeviceLost -= OnDeviceLost;
       }
 
-      // if we do ToggleFullscreen when using madVR (needed to resize OSD)
-      if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR)
-      {
-        GUIGraphicsContext.ForceMadVRRefresh3D = true;
-      }
-      // Force OSD resize when no video has started to display OSD GUI correctly
-      if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR &&
-               !GUIGraphicsContext.InVmr9Render)
-      { 
-        GUIGraphicsContext.ForceMadVRRefresh = true;
-      }
-
       // Reset DialogMenu to avoid freeze when going to fullscreen/windowed
       var dialogMenu = (GUIDialogMenu)GUIWindowManager.GetWindow((int)GUIWindow.Window.WINDOW_DIALOG_MENU);
       if (dialogMenu != null &&
@@ -598,6 +586,19 @@ namespace MediaPortal
       Log.Info("D3D: Screen size: {0}x{1}", GUIGraphicsContext.currentScreen.Bounds.Width,
         GUIGraphicsContext.currentScreen.Bounds.Height);
 
+      // if we do ToggleFullscreen when using madVR (needed to resize OSD)
+      if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR)
+      {
+        GUIGraphicsContext.ForceMadVRRefresh3D = true;
+        GUIGraphicsContext.ForceMadVRRefresh = true;
+      }
+      // Force OSD resize when no video has started to display OSD GUI correctly
+      if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR &&
+               !GUIGraphicsContext.InVmr9Render)
+      {
+        GUIGraphicsContext.ForceMadVRRefresh = true;
+      }
+
       // Force a madVR refresh to resize MP window
       // TODO how to handle it better
       g_Player.RefreshMadVrVideo();
@@ -625,7 +626,8 @@ namespace MediaPortal
     internal void RecreateSwapChain(bool useBackup)
     {
       // Don't need to resize when using madVR
-      if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR && GUIGraphicsContext.Vmr9Active)
+      if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR &&
+          GUIGraphicsContext.Vmr9Active)
       {
         GUIGraphicsContext.ForceMadVRRefresh3D = true;
         return;
@@ -666,7 +668,6 @@ namespace MediaPortal
         GUIWindowManager.Dispose();
         GUIFontManager.Dispose();
         GUITextureManager.Dispose();
-        if (GUIGraphicsContext.DX9Device != null)
         // Don't need to resize when using madVR
         if (GUIGraphicsContext.VideoRenderer != GUIGraphicsContext.VideoRendererType.madVR ||
             !GUIGraphicsContext.Vmr9Active)
@@ -1316,7 +1317,7 @@ namespace MediaPortal
       }
 
       Log.Debug("D3D: BuildPresentParams()");
-      Size size = CalcMaxClientArea();
+      var size = windowed ? GUIGraphicsContext.form.ClientSize : CalcMaxClientArea();
       _presentParams.BackBufferWidth  = windowed ? size.Width  : GUIGraphicsContext.currentScreen.Bounds.Width;
       _presentParams.BackBufferHeight = windowed ? size.Height : GUIGraphicsContext.currentScreen.Bounds.Height;
       _presentParams.BackBufferFormat = Format.Unknown;
@@ -1568,6 +1569,22 @@ namespace MediaPortal
     /// </summary>
     private void CreateDirectX9ExDevice()
     {
+      // This part need to be checked for restoring correct BackBuffer
+      int backupSizeWidth = 0;
+      int backupSizeHeight = 0;
+
+      using (Settings xmlreader = new MPSettings())
+      {
+        backupSizeWidth = xmlreader.GetValueAsInt("gui", "backupsizewidth", 0);
+        backupSizeHeight = xmlreader.GetValueAsInt("gui", "backupsizeheight", 0);
+      }
+
+      if ((backupSizeWidth != 0) && (backupSizeHeight != 0) && Windowed)
+      {
+        _presentParams.BackBufferWidth = backupSizeWidth;
+        _presentParams.BackBufferHeight = backupSizeHeight;
+      }
+
       var param = new D3DPRESENT_PARAMETERS
                     {
                       BackBufferWidth            = (uint)_presentParams.BackBufferWidth,

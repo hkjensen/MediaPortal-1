@@ -102,6 +102,8 @@ namespace MediaPortal.GUI.Library
 
     public static Device DX9DeviceMadVr = null; // pointer to current DX9 madVR device
 
+    public static IntPtr SubDeviceMadVr = IntPtr.Zero; // pointer to current DX9 madVR device
+
     // ReSharper disable InconsistentNaming
     public static Graphics graphics = null; // GDI+ Graphics object
     public static Form form = null; // Current GDI form
@@ -167,6 +169,10 @@ namespace MediaPortal.GUI.Library
     private static bool _allowRememberLastFocusedItem = true;
     private static bool _fullHD3DFormat = false;
     private static bool _tabWithBlackBars = false;
+
+    // For madVR
+    public static Surface MadVrRenderTargetVMR9 = null;
+    public static IntPtr HWnd;
 
     // Stacks for matrix transformations.
     private static readonly Stack<Matrix> ProjectionMatrixStack = new Stack<Matrix>();
@@ -1821,6 +1827,7 @@ namespace MediaPortal.GUI.Library
     public static bool ForceMadVRRefresh { get; set; }
     public static bool ForceMadVRRefresh3D { get; set; }
     public static bool ForceMadVRFirstStart { get; set; }
+    public static bool InitMadVRWindowPosition { get; set; }
 
     /// <summary>
     /// Enable/Disable bypassing of UI Calibration transforms

@@ -302,7 +302,10 @@ namespace MediaPortal.Player
         GUIGraphicsContext.InVmr9Render = false;
         if (VMR9Util.g_vmr9 != null)
         {
-          VMR9Util.g_vmr9.RestoreGuiForMadVr();
+          if (GUIGraphicsContext.MadVrRenderTargetVMR9 != null && !GUIGraphicsContext.MadVrRenderTargetVMR9.Disposed)
+          {
+            GUIGraphicsContext.DX9Device.SetRenderTarget(0, GUIGraphicsContext.MadVrRenderTargetVMR9);
+          }
         }
       }
     }
@@ -361,6 +364,10 @@ namespace MediaPortal.Player
         case GUIMessage.MessageType.GUI_MSG_REGISTER_MADVR_OSD:
           if (VMR9Util.g_vmr9 != null)
             VMR9Util.g_vmr9.WindowsMessageMp();
+          break;
+        case GUIMessage.MessageType.GUI_MSG_MADVRREPOSITION:
+          if (VMR9Util.g_vmr9 != null)
+            VMR9Util.g_vmr9.IniMadVrWindowPosition();
           break;
       }
     }
@@ -680,9 +687,9 @@ namespace MediaPortal.Player
       return 0;
     }
 
-    public void RenderFrame(Int16 width, Int16 height, Int16 arWidth, Int16 arHeight, uint pSurface)
+    public void RenderFrame(Int16 width, Int16 height, Int16 arWidth, Int16 arHeight, IntPtr pSurface)
     {
-      IntPtr ptrMadVr = (IntPtr)pSurface;
+      IntPtr ptrMadVr = pSurface;
       Surface surfaceMadVr = new Surface(ptrMadVr);
       try
       {
@@ -941,12 +948,12 @@ namespace MediaPortal.Player
       }
     }
 
-    public void RestoreDeviceSurface(uint pSurfaceDevice)
+    public void RestoreDeviceSurface(IntPtr pSurfaceDevice)
     {
       if (GUIGraphicsContext.DX9Device != null)
       {
-        Surface surface = new Surface((IntPtr)pSurfaceDevice);
-        VMR9Util.g_vmr9.MadVrRenderTargetVMR9 = surface;
+        Surface surface = new Surface(pSurfaceDevice);
+        GUIGraphicsContext.MadVrRenderTargetVMR9 = surface;
       }
     }
 
@@ -954,15 +961,15 @@ namespace MediaPortal.Player
     {
       if (GUIGraphicsContext.DX9Device != null)
       {
-        VMR9Util.g_vmr9.HWnd = (IntPtr)phWnd;
+        GUIGraphicsContext.HWnd = (IntPtr) phWnd;
       }
     }
 
-    public void SetRenderTarget(uint target)
+    public void SetRenderTarget(IntPtr target)
     {
       lock (_lockobj)
       {
-        Surface surface = new Surface((IntPtr) target);
+        Surface surface = new Surface(target);
         if (GUIGraphicsContext.DX9Device != null)
         {
           GUIGraphicsContext.DX9Device.SetRenderTarget(0, surface);
@@ -976,6 +983,7 @@ namespace MediaPortal.Player
     {
       // Set madVR D3D Device
       GUIGraphicsContext.DX9DeviceMadVr = device != IntPtr.Zero ? new Device(device) : null;
+      GUIGraphicsContext.SubDeviceMadVr = device;
       // No need to set subtitle engine when using XySubFilter and madVR.
       if (!_subEngineType.Equals("XySubFilter"))
       {
@@ -990,11 +998,14 @@ namespace MediaPortal.Player
 
     public void RenderSubtitle(long frameStart, int left, int top, int right, int bottom, int width, int height, int xOffsetInPixels)
     {
-      ISubEngine engine = SubEngine.GetInstance();
-      if (engine != null)
+      if (GUIGraphicsContext.SubDeviceMadVr != IntPtr.Zero)
       {
-        engine.SetTime(frameStart);
-        engine.Render(_subsRect, _destinationRect, xOffsetInPixels);
+        ISubEngine engine = SubEngine.GetInstance();
+        if (engine != null)
+        {
+          engine.SetTime(frameStart);
+          engine.Render(_subsRect, _destinationRect, xOffsetInPixels);
+        }
       }
     }
 
