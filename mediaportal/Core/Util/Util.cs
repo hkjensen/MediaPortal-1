@@ -5114,6 +5114,9 @@ namespace MediaPortal.Util
         case MediaPortal.GUI.Library.Geometry.Type.Zoom14to9:
           return GUILocalizeStrings.Get(1190);
 
+        case MediaPortal.GUI.Library.Geometry.Type.CinemaScope235:
+          return GUILocalizeStrings.Get(1339);
+
         default:
           return GUILocalizeStrings.Get(943);
       }
@@ -5143,6 +5146,9 @@ namespace MediaPortal.Util
 
         case MediaPortal.GUI.Library.Geometry.Type.Zoom14to9:
           return "Zoom 14:9";
+
+        case MediaPortal.GUI.Library.Geometry.Type.CinemaScope235:
+          return "CinemaScope 2:35";
 
         default:
           return "Normal";
@@ -5174,6 +5180,9 @@ namespace MediaPortal.Util
         case "Zoom 14:9":
           return MediaPortal.GUI.Library.Geometry.Type.Zoom14to9;
 
+        case "CinemaScope 2:35":
+          return MediaPortal.GUI.Library.Geometry.Type.CinemaScope235;
+
         default:
           return MediaPortal.GUI.Library.Geometry.Type.Normal;
       }
@@ -5203,6 +5212,9 @@ namespace MediaPortal.Util
 
         case 1190:
           return MediaPortal.GUI.Library.Geometry.Type.Zoom14to9;
+
+        case 1339:
+          return MediaPortal.GUI.Library.Geometry.Type.CinemaScope235;
 
         default:
           return MediaPortal.GUI.Library.Geometry.Type.Normal;
@@ -5578,6 +5590,7 @@ namespace MediaPortal.Util
         using (Bitmap b = new Bitmap(bmih.biWidth, bmih.biHeight, bmih.biWidth*4, PixelFormat.Format32bppRgb, pixels))
         {
           GUIGraphicsContext.madVRFrameBitmap = new Bitmap(b);
+          GUIGraphicsContext.madVRFrameBitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
           // IMPORTANT: Closes and disposes the stream
           // If this is not done we get a memory leak!
           b.Dispose();
