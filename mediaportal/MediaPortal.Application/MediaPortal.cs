@@ -187,6 +187,8 @@ public class MediaPortalApp : D3D, IRender
   private const int WM_EXITSIZEMOVE          = 0x0232; // http://msdn.microsoft.com/en-us/library/windows/desktop/ms632623(v=vs.85).aspx
   private const int WM_DISPLAYCHANGE         = 0x007E; // http://msdn.microsoft.com/en-us/library/windows/desktop/dd145210(v=vs.85).aspx
   private const int WM_POWERBROADCAST        = 0x0218; //http://msdn.microsoft.com/en-us/library/windows/desktop/aa373247(v=vs.85).aspx
+  private const int WM_WINDOWPOSCHANGED      = 0x0047; //http://msdn.microsoft.com/en-us/library/windows/desktop/aa373247(v=vs.85).aspx
+  private const int WM_WINDOWPOSCHANGING     = 0x0046; //http://msdn.microsoft.com/en-us/library/windows/desktop/aa373247(v=vs.85).aspx
   private const int SPI_GETSCREENSAVEACTIVE  = 0x0010; // http://msdn.microsoft.com/en-us/library/windows/desktop/ms724947(v=vs.85).aspx
   private const int SPI_SETSCREENSAVEACTIVE  = 0x0011; // http://msdn.microsoft.com/en-us/library/windows/desktop/ms724947(v=vs.85).aspx
   private const int SPIF_SENDCHANGE          = 0x0002; // http://msdn.microsoft.com/en-us/library/windows/desktop/ms724947(v=vs.85).aspx
@@ -1532,8 +1534,26 @@ public class MediaPortalApp : D3D, IRender
   {
     try
     {
+      //Log line for debugging purpose
+      //Log.Debug("Main: WndProc (Event: {0})", msg.ToString());
       switch (msg.Msg)
       {
+        case WM_WINDOWPOSCHANGED:
+        //case WM_WINDOWPOSCHANGING:
+          try
+          {
+            if (_useFcuBlackScreenFix && AppActive)
+            {
+              // Workaround for Win10 FCU and blackscreen
+              GUIGraphicsContext.DX9Device?.Present();
+              Log.Debug("Main: WM_WINDOWPOSCHANGED - DX9Device.Present()");
+            }
+          }
+          catch (Exception ex)
+          {
+            _forceMpAlive = true;
+          }
+          break;
         case (int)ShellNotifications.WmShnotify:
           NotifyInfos info = new NotifyInfos((ShellNotifications.SHCNE)(int)msg.LParam);
 
@@ -2123,6 +2143,7 @@ public class MediaPortalApp : D3D, IRender
           Log.Info("Main: Activation request received");
           RestoreFromTray();
         }
+        Log.Debug("Main: Activation request _forceMpAlive to false");
         break;
     }
     msg.Result = (IntPtr)0;
@@ -2194,8 +2215,8 @@ public class MediaPortalApp : D3D, IRender
               try
               {
                 // Force MP to refresh screen
-                ForceMpAlive();
                 _forceMpAlive = true;
+                ForceMpAlive();
 
                 GUIGraphicsContext.DeviceVideoConnected--;
               }
@@ -2256,11 +2277,8 @@ public class MediaPortalApp : D3D, IRender
                 }
 
                 // Force MP to refresh screen
-                if (!_forceMpAlive)
-                {
-                  ForceMpAlive();
-                  _forceMpAlive = true;
-                }
+                _forceMpAlive = true;
+                ForceMpAlive();
               }
               catch (Exception exception)
               {
@@ -2279,8 +2297,8 @@ public class MediaPortalApp : D3D, IRender
               try
               {
                 // Force MP to refresh screen
-                ForceMpAlive();
                 _forceMpAlive = true;
+                ForceMpAlive();
 
                 GUIGraphicsContext.DeviceVideoConnected--;
               }
@@ -2296,8 +2314,8 @@ public class MediaPortalApp : D3D, IRender
               try
               {
                 // Force MP to refresh screen
-                ForceMpAlive();
                 _forceMpAlive = true;
+                ForceMpAlive();
               }
               catch (Exception exception)
               {
@@ -2991,8 +3009,8 @@ public class MediaPortalApp : D3D, IRender
     }
 
     // Force MP to refresh screen
-    ForceMpAlive();
     _forceMpAlive = true;
+    ForceMpAlive();
 
     // Force focus after resume done (really weird sequence) disable for now
     ForceMPFocus();
@@ -3055,7 +3073,8 @@ public class MediaPortalApp : D3D, IRender
     {
       try
       {
-        CreateStateBlock();
+        // Trying to disable this part seems not needed anymore.
+        //CreateStateBlock();
         uiVisible = GUILayerManager.Render(timePassed, layers);
         RenderStats();
       }
