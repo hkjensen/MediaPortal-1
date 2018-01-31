@@ -196,6 +196,7 @@ public class MediaPortalApp : D3D, IRender
   private const int D3DERR_DEVICEREMOVED     = -2005530512; // http://msdn.microsoft.com/en-us/library/windows/desktop/bb172554(v=vs.85).aspx
   private const int D3DERR_INVALIDCALL       = -2005530516; // http://msdn.microsoft.com/en-us/library/windows/desktop/bb172554(v=vs.85).aspx
   private const int D3DERR_NOTAVAILABLE      = -2005530518; // http://msdn.microsoft.com/en-us/library/windows/desktop/bb172554(v=vs.85).aspx
+  private const int E_FAIL                   = -2147467259; // http://msdn.microsoft.com/en-us/library/windows/desktop/bb172554(v=vs.85).aspx
 
   private const int DEVICE_NOTIFY_WINDOW_HANDLE         = 0;
   private const int DEVICE_NOTIFY_ALL_INTERFACE_CLASSES = 4;
@@ -1539,14 +1540,13 @@ public class MediaPortalApp : D3D, IRender
       switch (msg.Msg)
       {
         case WM_WINDOWPOSCHANGED:
-        //case WM_WINDOWPOSCHANGING:
           try
           {
             if (_useFcuBlackScreenFix && AppActive)
             {
               // Workaround for Win10 FCU and blackscreen
-              GUIGraphicsContext.DX9Device?.Present();
-              Log.Debug("Main: WM_WINDOWPOSCHANGED - DX9Device.Present()");
+              _forceMpAlive = true;
+              Log.Debug("Main: WM_WINDOWPOSCHANGED");
             }
           }
           catch (Exception ex)
@@ -1650,13 +1650,25 @@ public class MediaPortalApp : D3D, IRender
 
         // handle display changes
         case WM_DISPLAYCHANGE:
+          // disable event handlers
+          if (GUIGraphicsContext.DX9Device != null)
+          {
+            GUIGraphicsContext.DX9Device.DeviceLost -= OnDeviceLost;
+          }
+
+          // Suspending GUIGraphicsContext.State
+          if (GUIGraphicsContext.CurrentState == GUIGraphicsContext.State.RUNNING)
+          {
+            GUIGraphicsContext.CurrentState = GUIGraphicsContext.State.SUSPENDING;
+          }
+
           Screen screen = Screen.FromControl(this);
-          if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR && AppActive &&
+          if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR && (AppActive &&
               (!Equals(screen.Bounds.Size.Width, GUIGraphicsContext.currentScreen.Bounds.Width) ||
                !Equals(screen.Bounds.Size.Height, GUIGraphicsContext.currentScreen.Bounds.Height)) ||
                (!Equals(GUIGraphicsContext._backupCurrentScreenSizeWidth, GUIGraphicsContext.currentScreen.Bounds.Width) ||
                !Equals(GUIGraphicsContext._backupCurrentScreenSizeHeight, GUIGraphicsContext.currentScreen.Bounds.Height)) ||
-              GUIGraphicsContext.ForcedRefreshRate3D)
+              GUIGraphicsContext.ForcedRefreshRate3D))
           {
             if (
               !Equals(screen.Bounds.Size.Width, GUIGraphicsContext.currentScreen.Bounds.Width) ||
@@ -1695,6 +1707,22 @@ public class MediaPortalApp : D3D, IRender
             SetBounds(GUIGraphicsContext.currentScreen.Bounds.X, GUIGraphicsContext.currentScreen.Bounds.Y, GUIGraphicsContext.currentScreen.Bounds.Width, GUIGraphicsContext.currentScreen.Bounds.Height);
             Log.Debug("Main: WM_DISPLAYCHANGE restore current screen position");
           }
+
+          // Restore GUIGraphicsContext.State
+          if (GUIGraphicsContext.CurrentState == GUIGraphicsContext.State.SUSPENDING)
+          {
+            GUIGraphicsContext.CurrentState = GUIGraphicsContext.State.RUNNING;
+          }
+
+          // enable event handlers
+          if (GUIGraphicsContext.DX9Device != null)
+          {
+            GUIGraphicsContext.DX9Device.DeviceLost += OnDeviceLost;
+          }
+
+          // FCU Workaround
+          _forceMpAlive = true;
+          ForceMpAlive();
           break;
 
         // handle device changes
@@ -1870,6 +1898,19 @@ public class MediaPortalApp : D3D, IRender
           _delayedResume = false;
           _suspended = true;
 
+          // Suspending GUIGraphicsContext when going to S3
+          if (GUIGraphicsContext.CurrentState == GUIGraphicsContext.State.RUNNING)
+          {
+            Log.Debug("Main: Set GUIGraphicsContext.State.SUSPENDING");
+            GUIGraphicsContext.CurrentState = GUIGraphicsContext.State.SUSPENDING;
+          }
+
+          // disable event handlers
+          if (GUIGraphicsContext.DX9Device != null)
+          {
+            GUIGraphicsContext.DX9Device.DeviceLost -= OnDeviceLost;
+          }
+
           // Workaround HDMI hot-plug problems by forcing the form size to match the actual screen size.
           Screen screen = Screen.FromControl(this);
           if (Equals(screen.Bounds.Size, WINDOWS_NATIVE_RESOLUTION) && !Equals(screen.Bounds.Size, _backupBounds.Size))
@@ -1890,19 +1931,6 @@ public class MediaPortalApp : D3D, IRender
             }
             RecreateSwapChain(true);
             _restoreLoadedScreen = false;
-          }
-
-          // Suspending GUIGraphicsContext when going to S3
-          if (GUIGraphicsContext.CurrentState == GUIGraphicsContext.State.RUNNING)
-          {
-            Log.Debug("Main: Set GUIGraphicsContext.State.SUSPENDING");
-            GUIGraphicsContext.CurrentState = GUIGraphicsContext.State.SUSPENDING;
-          }
-
-          // disable event handlers
-          if (GUIGraphicsContext.DX9Device != null)
-          {
-            GUIGraphicsContext.DX9Device.DeviceLost -= OnDeviceLost;
           }
 
           // Suspend operation
@@ -2012,6 +2040,10 @@ public class MediaPortalApp : D3D, IRender
                       Bounds.Width, Bounds.Height, GUIGraphicsContext.currentScreen.Bounds.Width, GUIGraphicsContext.currentScreen.Bounds.Height, _backupBounds.Width, _backupBounds.Height);
             Bounds = _backupBounds;
           }
+
+          // FCU blackscreen fix
+          _forceMpAlive = true;
+          ForceMpAlive();
           break;
 
         // A change in the power status of the computer is detected
@@ -2143,7 +2175,6 @@ public class MediaPortalApp : D3D, IRender
           Log.Info("Main: Activation request received");
           RestoreFromTray();
         }
-        Log.Debug("Main: Activation request _forceMpAlive to false");
         break;
     }
     msg.Result = (IntPtr)0;
@@ -2158,13 +2189,23 @@ public class MediaPortalApp : D3D, IRender
     Log.Debug("Main: WM_DEVICECHANGE (Event: {0})", Enum.GetName(typeof(DBT_EVENT), msg.WParam.ToInt32()));
     RemovableDriveHelper.HandleDeviceChangedMessage(msg);
 
+    //if (msg.WParam.ToInt32() == DBT_DEVICEARRIVAL)
+    //{
+    //  if (_useFcuBlackScreenFix && AppActive)
+    //  {
+    //    // Workaround for Win10 FCU and blackscreen
+    //    _forceMpAlive = true;
+    //    Log.Debug("Main: WM_DEVICECHANGE - DBT_DEVICEARRIVAL FCU");
+    //  }
+    //}
+
     // process additional data if available
     if (msg.LParam.ToInt32() != 0)
     {
       var hdr = (DEV_BROADCAST_HDR)Marshal.PtrToStructure(msg.LParam, typeof(DEV_BROADCAST_HDR));
       if (hdr.dbcc_devicetype != DBT_DEVTYP_DEVICEINTERFACE)
       {
-        Log.Debug("Main: Device type is {0}", Enum.GetName(typeof(DBT_DEV_TYPE), hdr.dbcc_devicetype));        
+        Log.Debug("Main: Device type is {0}", Enum.GetName(typeof(DBT_DEV_TYPE), hdr.dbcc_devicetype));
       }
       else
       {
@@ -2916,6 +2957,16 @@ public class MediaPortalApp : D3D, IRender
     Log.Debug("Main: OnSuspend - dispose DB connection");
     DisposeDBs();
 
+    // Reset DialogMenu to avoid freeze when going to suspend
+    var dialogMenu = (GUIDialogMenu)GUIWindowManager.GetWindow((int)GUIWindow.Window.WINDOW_DIALOG_MENU);
+    if (dialogMenu != null &&
+        (GUIWindowManager.RoutedWindow == (int)GUIWindow.Window.WINDOW_DIALOG_MENU ||
+         GUIWindowManager.RoutedWindow == (int)GUIWindow.Window.WINDOW_DIALOG_OK))
+    {
+      dialogMenu.Dispose();
+      GUIWindowManager.UnRoute(); // only unroute if we still the routed window
+    }
+
     Log.Info("Main: OnSuspend - Done");
   }
 
@@ -3008,10 +3059,6 @@ public class MediaPortalApp : D3D, IRender
       RestoreFromTray();
     }
 
-    // Force MP to refresh screen
-    _forceMpAlive = true;
-    ForceMpAlive();
-
     // Force focus after resume done (really weird sequence) disable for now
     ForceMPFocus();
 
@@ -3073,8 +3120,7 @@ public class MediaPortalApp : D3D, IRender
     {
       try
       {
-        // Trying to disable this part seems not needed anymore.
-        //CreateStateBlock();
+        CreateStateBlock();
         uiVisible = GUILayerManager.Render(timePassed, layers);
         RenderStats();
       }
@@ -3687,6 +3733,26 @@ public class MediaPortalApp : D3D, IRender
         return;
       }
 
+      try
+      {
+        if (GUIGraphicsContext.DX9Device != null) GUIGraphicsContext.DX9Device.TestCooperativeLevel();
+      }
+      catch (DeviceLostException)
+      {
+        Log.Debug("Main: D3DERR_DEVICELOST - device is lost but cannot be reset at this time");
+        return;
+      }
+      catch (DeviceNotResetException)
+      {
+        Log.Debug("Main: D3DERR_DEVICENOTRESET - device is lost but can be reset at this time");
+        return;
+      }
+      catch
+      {
+        Log.Debug("Main: render not ready at this time");
+        return;
+      }
+
       // render frame
       try
       {
@@ -3820,7 +3886,11 @@ public class MediaPortalApp : D3D, IRender
           case D3DERR_NOTAVAILABLE:
             Log.Info("Main: GPU_NOT_AVAILABLE - {0}", dex.ToString());
             Utils.RestartMePo();
-            break; 
+            break;
+
+          case E_FAIL:
+            Log.Info("Main: GPU_E_FAIL");
+            return;
 
           default:
             Log.Error(dex);
@@ -5352,10 +5422,22 @@ public class MediaPortalApp : D3D, IRender
 
         case GUIMessage.MessageType.GUI_MSG_MADVR_SCREEN_REFRESH:
           // We need to do a refresh of screen when using madVR only if resolution screen has change during playback
-          if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR && NeedRecreateSwapChain)
+          if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR && NeedRecreateSwapChain || message.Param1 == 1)
           {
+            // disable event handlers
+            if (GUIGraphicsContext.DX9Device != null)
+            {
+              GUIGraphicsContext.DX9Device.DeviceLost -= OnDeviceLost;
+            }
+
             RecreateSwapChain(false);
             Log.Debug("Main: recreate swap chain for madVR done");
+
+            // enable event handlers
+            if (GUIGraphicsContext.DX9Device != null)
+            {
+              GUIGraphicsContext.DX9Device.DeviceLost += OnDeviceLost;
+            }
           }
           break;
 

@@ -172,6 +172,7 @@ namespace MediaPortal
     private bool                       _wasPlayingVideo;          //
     private bool                       _alwaysOnTop;              // tracks the always on top state
     private bool                       _firstTimeWindowDisplayed; // set to true when MP becomes Active the 1st time
+    private bool                       _firstTimeLoadingParams;   // set to true when MP becomes Active the 1st time
     private bool                       _firstTimeActivated;       // needed to focus on first start
     private int                        _lastActiveWindow;         //
     private long                       _lastTime;                 //
@@ -219,7 +220,8 @@ namespace MediaPortal
     /// </summary>
     protected D3D()
     {
-      _firstTimeWindowDisplayed  = true;
+      _firstTimeLoadingParams   = true;
+      _firstTimeWindowDisplayed = true;
       _firstTimeActivated       = true;
       MinimizeOnStartup         = false;
       MinimizeOnGuiExit         = false;
@@ -595,11 +597,12 @@ namespace MediaPortal
       {
         // Get Size
         Size client = GUIGraphicsContext.form.ClientSize;
-        if (GUIGraphicsContext.DX9Device.PresentationParameters.BackBufferWidth != client.Width ||
-            GUIGraphicsContext.DX9Device.PresentationParameters.BackBufferHeight != client.Height)
+        if ((GUIGraphicsContext.DX9Device.PresentationParameters.BackBufferWidth != client.Width ||
+            GUIGraphicsContext.DX9Device.PresentationParameters.BackBufferHeight != client.Height) && _firstTimeLoadingParams)
         {
           // reset device if necessary
           RecreateSwapChain(false);
+          _firstTimeLoadingParams = false;
         }
       }
 
@@ -642,150 +645,171 @@ namespace MediaPortal
     /// </summary>
     internal void RecreateSwapChain(bool useBackup)
     {
-      // Don't need to resize when using madVR
-      if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR &&
-          GUIGraphicsContext.Vmr9Active)
+      //lock (GUIFontManager.Renderlock) // Disable for now seems to deadlock
       {
-        GUIGraphicsContext.ForceMadVRRefresh3D = true;
-        return;
-      }
-
-      // disable event handlers
-      if (GUIGraphicsContext.DX9Device != null)
-      {
-        GUIGraphicsContext.DX9Device.DeviceLost -= OnDeviceLost;
-      }
-
-      if (AppActive || NeedRecreateSwapChain)
-      {
-        Log.Debug("Main: RecreateSwapChain()");
-
-        // Suspending GUIGraphicsContext.State
-        if (GUIGraphicsContext.CurrentState == GUIGraphicsContext.State.RUNNING)
-        {
-          GUIGraphicsContext.CurrentState = GUIGraphicsContext.State.SUSPENDING;
-        }
-
-        // stop plaback if we are using a a D3D9 device and the device is not lost, meaning we are toggling between fullscreen and windowed mode
-        if (!GUIGraphicsContext.IsDirectX9ExUsed() && g_Player.Playing && !RefreshRateChanger.RefreshRateChangePending)
-        {
-          g_Player.Stop();
-          while (GUIGraphicsContext.IsPlaying)
-          {
-            Thread.Sleep(100);
-          }
-        }
-
-        // halt rendering
-        AppActive = false;
-        int activeWin = GUIWindowManager.ActiveWindow;
-
-        // stop window manager and dispose resources
-        GUIWindowManager.UnRoute();
-        GUIWindowManager.Dispose();
-        GUIFontManager.Dispose();
-        GUITextureManager.Dispose();
         // Don't need to resize when using madVR
-        if (GUIGraphicsContext.VideoRenderer != GUIGraphicsContext.VideoRendererType.madVR ||
-            !GUIGraphicsContext.Vmr9Active)
+        if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR &&
+            GUIGraphicsContext.Vmr9Active)
         {
-          if (GUIGraphicsContext.DX9Device != null)
-          {
-            GUIGraphicsContext.DX9Device.EvictManagedResources();
+          GUIGraphicsContext.ForceMadVRRefresh3D = true;
+          //return;
+        }
 
-            if (useBackup)
+        if (AppActive || NeedRecreateSwapChain)
+        {
+          Log.Debug("Main: RecreateSwapChain()");
+
+          // Suspending GUIGraphicsContext.State
+          if (GUIGraphicsContext.CurrentState == GUIGraphicsContext.State.RUNNING)
+          {
+            GUIGraphicsContext.CurrentState = GUIGraphicsContext.State.SUSPENDING;
+          }
+
+          // stop plaback if we are using a a D3D9 device and the device is not lost, meaning we are toggling between fullscreen and windowed mode
+          if (!GUIGraphicsContext.IsDirectX9ExUsed() && g_Player.Playing && !RefreshRateChanger.RefreshRateChangePending)
+          {
+            g_Player.Stop();
+            while (GUIGraphicsContext.IsPlaying)
             {
-              try
-              {
-                Log.Debug("Main: RecreateSwapChain() by restoring startup DirectX values");
-                GUIGraphicsContext.DirectXPresentParameters = _presentParamsBackup;
-                GUIGraphicsContext.DX9Device.Reset(_presentParamsBackup);
-              }
-              catch (InvalidCallException)
-              {
-                Log.Error("D3D: D3DERR_INVALIDCALL - presentation parameters might contain an invalid value");
-              }
-              catch (DeviceLostException)
-              {
-                Log.Error("D3D: D3DERR_DEVICELOST - device is lost but cannot be reset at this time");
-              }
-              catch (DriverInternalErrorException)
-              {
-                Log.Error("D3D: D3DERR_DRIVERINTERNALERROR - internal driver error");
-              }
-              catch (OutOfVideoMemoryException)
-              {
-                Log.Error("D3D: D3DERR_OUTOFVIDEOMEMORY - not enough available display memory to perform the operation");
-              }
-              catch (OutOfMemoryException)
-              {
-                Log.Error("D3D: D3DERR_OUTOFMEMORY - could not allocate sufficient memory to complete the call");
-              }
+              Thread.Sleep(100);
             }
-            else
+          }
+
+          // halt rendering
+          AppActive = false;
+          int activeWin = GUIWindowManager.ActiveWindow;
+
+          // stop window manager and dispose resources
+          GUIWindowManager.UnRoute();
+          GUIWindowManager.Dispose();
+          GUIFontManager.Dispose();
+          GUITextureManager.Dispose();
+          // Don't need to resize when using madVR
+          //if (GUIGraphicsContext.VideoRenderer != GUIGraphicsContext.VideoRendererType.madVR ||
+          //    !GUIGraphicsContext.Vmr9Active)
+          {
+            if (GUIGraphicsContext.DX9Device != null)
             {
-              // build new D3D presentation parameters and reset device
-              Log.Debug("Main: RecreateSwapChain() by rebuild PresentParams");
-              BuildPresentParams(Windowed);
-              try
+              GUIGraphicsContext.DX9Device.EvictManagedResources();
+
+              if (useBackup)
               {
-                GUIGraphicsContext.DX9Device.Reset(_presentParams);
+                try
+                {
+                  Log.Debug("Main: RecreateSwapChain() by restoring startup DirectX values");
+                  GUIGraphicsContext.DirectXPresentParameters = _presentParamsBackup;
+                  GUIGraphicsContext.DX9Device.Reset(_presentParamsBackup);
+                }
+                catch (InvalidCallException)
+                {
+                  Log.Error("D3D: D3DERR_INVALIDCALL - presentation parameters might contain an invalid value");
+                  Util.Utils.RestartMePo();
+                }
+                catch (DeviceLostException)
+                {
+                  Log.Error("D3D: D3DERR_DEVICELOST - device is lost but cannot be reset at this time");
+                }
+                catch (DriverInternalErrorException)
+                {
+                  Log.Error("D3D: D3DERR_DRIVERINTERNALERROR - internal driver error");
+                }
+                catch (OutOfVideoMemoryException)
+                {
+                  Log.Error(
+                    "D3D: D3DERR_OUTOFVIDEOMEMORY - not enough available display memory to perform the operation");
+                }
+                catch (OutOfMemoryException)
+                {
+                  Log.Error("D3D: D3DERR_OUTOFMEMORY - could not allocate sufficient memory to complete the call");
+                }
+                catch (Exception ex)
+                {
+                  Log.Error("D3D: RecreateSwapChain exception (useBackup) : {0}", ex);
+                }
               }
-              catch (InvalidCallException)
+              else
               {
-                Log.Error("D3D: D3DERR_INVALIDCALL - presentation parametters might contain an invalid value");
-              }
-              catch (DeviceLostException)
-              {
-                // Indicate that the device has been lost
-                Log.Error("D3D: D3DERR_DEVICELOST - device is lost but cannot be reset at this time");
-              }
-              catch (DriverInternalErrorException)
-              {
-                Log.Error("D3D: D3DERR_DRIVERINTERNALERROR - internal driver error");
-              }
-              catch (OutOfVideoMemoryException)
-              {
-                Log.Error("D3D: D3DERR_OUTOFVIDEOMEMORY - not enough available display memory to perform the operation");
-              }
-              catch (OutOfMemoryException)
-              {
-                Log.Error("D3D: D3DERR_OUTOFMEMORY - could not allocate sufficient memory to complete the call");
+                // build new D3D presentation parameters and reset device
+                Log.Debug("Main: RecreateSwapChain() by rebuild PresentParams");
+                BuildPresentParams(Windowed);
+                try
+                {
+                  GUIGraphicsContext.DX9Device.Reset(_presentParams);
+                }
+                catch (InvalidCallException)
+                {
+                  Log.Error("D3D: D3DERR_INVALIDCALL - presentation parametters might contain an invalid value");
+                }
+                catch (DeviceLostException)
+                {
+                  // Indicate that the device has been lost
+                  Log.Error("D3D: D3DERR_DEVICELOST - device is lost but cannot be reset at this time");
+                }
+                catch (DriverInternalErrorException)
+                {
+                  Log.Error("D3D: D3DERR_DRIVERINTERNALERROR - internal driver error");
+                }
+                catch (OutOfVideoMemoryException)
+                {
+                  Log.Error(
+                    "D3D: D3DERR_OUTOFVIDEOMEMORY - not enough available display memory to perform the operation");
+                }
+                catch (OutOfMemoryException)
+                {
+                  Log.Error("D3D: D3DERR_OUTOFMEMORY - could not allocate sufficient memory to complete the call");
+                }
+                catch (Exception ex)
+                {
+                  Log.Error("D3D: RecreateSwapChain exception : {0}", ex);
+                }
               }
             }
           }
+
+          // load resources
+          GUIGraphicsContext.Load();
+          GUITextureManager.Init();
+          GUIFontManager.LoadFonts(GUIGraphicsContext.GetThemedSkinFile(@"\fonts.xml"));
+          GUIFontManager.InitializeDeviceObjects();
+
+          // restart window manager
+          GUIWindowManager.PreInit();
+          GUIWindowManager.OnResize();
+          GUIWindowManager.ActivateWindow(activeWin);
+          GUIWindowManager.OnDeviceRestored();
+
+          // set new device for font manager
+          GUIFontManager.SetDevice();
+
+          // continue rendering
+          AppActive = true;
+          NeedRecreateSwapChain = false;
+
+          if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR)
+          {
+            Log.Debug("D3D: MadVrScreenResize madVR");
+            VMR9Util.g_vmr9?.MadVrScreenResize(GUIGraphicsContext.form.Location.X, GUIGraphicsContext.form.Location.Y,
+              _presentParams.BackBufferWidth, _presentParams.BackBufferHeight, true);
+          }
+
+          if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR)
+          {
+            // Reset 3D
+            GUIGraphicsContext.NoneDone = false;
+            GUIGraphicsContext.TopAndBottomDone = false;
+            GUIGraphicsContext.SideBySideDone = false;
+            GUIGraphicsContext.SBSLeftDone = false;
+            GUIGraphicsContext.SBSRightDone = false;
+            GUIGraphicsContext.TABTopDone = false;
+            GUIGraphicsContext.TABBottomDone = false;
+          }
+
+          // Restore GUIGraphicsContext.State
+          if (GUIGraphicsContext.CurrentState == GUIGraphicsContext.State.SUSPENDING)
+          {
+            GUIGraphicsContext.CurrentState = GUIGraphicsContext.State.RUNNING;
+          }
         }
-
-        // load resources
-        GUIGraphicsContext.Load();
-        GUITextureManager.Init();
-        GUIFontManager.LoadFonts(GUIGraphicsContext.GetThemedSkinFile(@"\fonts.xml"));
-        GUIFontManager.InitializeDeviceObjects();
-
-        // restart window manager
-        GUIWindowManager.PreInit();
-        GUIWindowManager.OnResize();
-        GUIWindowManager.ActivateWindow(activeWin);
-        GUIWindowManager.OnDeviceRestored();
-
-        // set new device for font manager
-        GUIFontManager.SetDevice();
-
-        // continue rendering
-        AppActive = true;
-        NeedRecreateSwapChain = false;
-
-        // Restore GUIGraphicsContext.State
-        if (GUIGraphicsContext.CurrentState == GUIGraphicsContext.State.SUSPENDING)
-        {
-          GUIGraphicsContext.CurrentState = GUIGraphicsContext.State.RUNNING;
-        }
-      }
-
-      // enable event handlers
-      if (GUIGraphicsContext.DX9Device != null)
-      {
-        GUIGraphicsContext.DX9Device.DeviceLost += OnDeviceLost;
       }
     }
 
@@ -913,6 +937,35 @@ namespace MediaPortal
         catch (DeviceNotResetException)
         {
           Log.Warn("D3D: D3DERR_DEVICENOTRESET - device is lost but can be reset at this time");
+        }
+      }
+
+      while (true)
+      {
+        try
+        {
+          if (GUIGraphicsContext.DX9Device != null && !GUIGraphicsContext.DX9Device.Disposed)
+          {
+            // Check device
+            GUIGraphicsContext.DX9Device.Present();
+            break;
+          }
+        }
+        catch (DirectXException dex)
+        {
+          switch (dex.ErrorCode)
+          {
+            default:
+              Log.Error(dex);
+              Util.Utils.RestartMePo();
+              break;
+          }
+        }
+        catch (Exception ex)
+        {
+          Log.Error(ex);
+          Util.Utils.RestartMePo();
+          break;
         }
       }
 
@@ -1161,7 +1214,7 @@ namespace MediaPortal
     /// </summary>
     protected void ForceMpAlive()
     {
-      if (!_forceMpAlive)
+      if (!_forceMpAlive || Windowed)
       {
         return;
       }
@@ -1170,35 +1223,107 @@ namespace MediaPortal
         Log.Debug("D3D: ForceMPAlive start.");
         if (GUIGraphicsContext.form != null && GUIGraphicsContext.ActiveForm != IntPtr.Zero)
         {
-          // Make MediaPortal window normal ( if minimized )
-          if (GUIGraphicsContext.form.WindowState == FormWindowState.Minimized)
+          try
           {
-            Win32API.ShowWindow(GUIGraphicsContext.ActiveForm, Win32API.ShowWindowFlags.ShowNormal);
-            Win32API.ShowWindow(GUIGraphicsContext.ActiveForm, Win32API.ShowWindowFlags.Minimize);
-            this.WindowState = FormWindowState.Normal;
-            this.WindowState = FormWindowState.Minimized;
-            Log.Debug("D3D: ForceMPAlive Minimize.");
+            // FCU suicide form blackscreen fix
+            _forceMpAlive = false;
+            FixFCU();
           }
-          else
+          catch (Exception)
           {
-            Win32API.ShowWindow(GUIGraphicsContext.ActiveForm, Win32API.ShowWindowFlags.Minimize);
-            Win32API.ShowWindow(GUIGraphicsContext.ActiveForm, Win32API.ShowWindowFlags.ShowNormal);
-            this.WindowState = FormWindowState.Minimized;
-            this.WindowState = FormWindowState.Normal;
-            Log.Debug("D3D: ForceMPAlive ShowNormal.");
+            // Make MediaPortal window normal ( if minimized )
+            if (GUIGraphicsContext.form.WindowState == FormWindowState.Minimized)
+            {
+              Win32API.ShowWindow(GUIGraphicsContext.ActiveForm, Win32API.ShowWindowFlags.ShowNormal);
+              Win32API.ShowWindow(GUIGraphicsContext.ActiveForm, Win32API.ShowWindowFlags.Minimize);
+              this.WindowState = FormWindowState.Normal;
+              this.WindowState = FormWindowState.Minimized;
+              Log.Debug("D3D: ForceMPAlive Minimize.");
+            }
+            else
+            {
+              Win32API.ShowWindow(GUIGraphicsContext.ActiveForm, Win32API.ShowWindowFlags.Minimize);
+              Win32API.ShowWindow(GUIGraphicsContext.ActiveForm, Win32API.ShowWindowFlags.ShowNormal);
+              this.WindowState = FormWindowState.Minimized;
+              this.WindowState = FormWindowState.Normal;
+              Log.Debug("D3D: ForceMPAlive ShowNormal.");
+            }
           }
-
-          // Make Mediaportal window focused
-          if (Win32API.SetForegroundWindow(GUIGraphicsContext.ActiveForm, true))
-          {
-            Log.Debug("D3D: ForceMPAlive Successfully switched focus.");
-          }
-
-          // Bring MP to front
-          GUIGraphicsContext.form.BringToFront();
-          _forceMpAlive = false;
-          Log.Debug("D3D: ForceMPAlive done.");
         }
+      }
+    }
+
+    // Fix for FCU blackscreen
+    protected class SuicideForm : Form
+    {
+      protected internal SuicideForm()
+      {
+        Thread.Sleep(500);
+        Activated += SuicideFormActivated;
+        Opacity = 0;
+      }
+
+      protected override void Dispose(bool disposing)
+      {
+        Activated -= SuicideFormActivated;
+        base.Dispose(disposing);
+      }
+
+      private void SuicideFormActivated(Object sender, EventArgs e)
+      {
+        Thread.Sleep(1000);
+        Close();
+      }
+    }
+
+    protected static void KillFormThread()
+    {
+      try
+      {
+        var suicideForm = new SuicideForm
+        {
+          Opacity = 5,
+          Size = new Size(10, 10),
+          FormBorderStyle = FormBorderStyle.None,
+          WindowState = FormWindowState.Normal,
+          ShowInTaskbar = false
+        };
+        suicideForm.Location = new Point(GUIGraphicsContext.form.Location.X,
+          GUIGraphicsContext.form.Location.Y)
+        {
+          X = GUIGraphicsContext.form.Location.X,
+          Y = GUIGraphicsContext.form.Location.Y
+        };
+        suicideForm.Show();
+        suicideForm.Focus();
+        //// Make Mediaportal window focused
+        //if (Win32API.SetForegroundWindow(GUIGraphicsContext.ActiveForm, true))
+        //{
+        //  Log.Debug("D3D: KillFormThread MP Successfully switched focus.");
+        //}
+
+        //// Bring MP to front
+        //GUIGraphicsContext.form.BringToFront();
+        Log.Debug("D3D: KillFormThread done.");
+      }
+      catch (Exception ex)
+      {
+        Log.Error("D3D: KillFormThread exception {0}", ex);
+      }
+    }
+
+    protected static void FixFCU()
+    {
+      try
+      {
+        Log.Debug("D3D: FixFCU");
+        ThreadStart starter = KillFormThread;
+        var killFormThread = new Thread(starter) { IsBackground = true };
+        killFormThread.Start();
+      }
+      catch (Exception ex)
+      {
+        Log.Error("D3D: FixFCU exception {0}", ex);
       }
     }
 
@@ -1240,17 +1365,36 @@ namespace MediaPortal
     {
       Size clientArea;
       var border = new Size(Width - ClientSize.Width, Height - ClientSize.Height);
-      if (GUIGraphicsContext.SkinSize.Width + border.Width <= GUIGraphicsContext.currentScreen.WorkingArea.Width &&
-          GUIGraphicsContext.SkinSize.Height + border.Height <= GUIGraphicsContext.currentScreen.WorkingArea.Height)
+      // Adding code to detect the Area in windowed mode because with screen has taskbar, it make the result not correct.
+      int height;
+      int width;
+      if (Windowed)
       {
-        clientArea = new Size(GUIGraphicsContext.SkinSize.Width + border.Width, GUIGraphicsContext.SkinSize.Height + border.Height);
+        height = GUIGraphicsContext.currentScreen.WorkingArea.Height;
+        width = GUIGraphicsContext.currentScreen.WorkingArea.Width;
+        Log.Debug("CalcMaxClientArea windowed : width {0} / height {1}", width, height);
       }
       else
       {
-        double ratio = Math.Min((double)(GUIGraphicsContext.currentScreen.WorkingArea.Width - border.Width) / GUIGraphicsContext.SkinSize.Width,
-                                (double)(GUIGraphicsContext.currentScreen.WorkingArea.Height - border.Height) / GUIGraphicsContext.SkinSize.Height);
-        clientArea = new Size((int)(GUIGraphicsContext.SkinSize.Width * ratio), (int)(GUIGraphicsContext.SkinSize.Height * ratio));
+        height = GUIGraphicsContext.currentScreen.Bounds.Height;
+        width = GUIGraphicsContext.currentScreen.Bounds.Width;
+        Log.Debug("CalcMaxClientArea return fullscreen : width {0} / height {1}", width, height);
+        return new Size(width, height);
       }
+      if (GUIGraphicsContext.SkinSize.Width + border.Width <= width &&
+          GUIGraphicsContext.SkinSize.Height + border.Height <= height)
+      {
+        clientArea = new Size(GUIGraphicsContext.SkinSize.Width + border.Width, GUIGraphicsContext.SkinSize.Height + border.Height);
+        Log.Debug("CalcMaxClientArea clientArea 1 : clientArea {0}", clientArea);
+      }
+      else
+      {
+        double ratio = Math.Min((double)(width - border.Width) / GUIGraphicsContext.SkinSize.Width,
+                                (double)(height - border.Height) / GUIGraphicsContext.SkinSize.Height);
+        clientArea = new Size((int)(GUIGraphicsContext.SkinSize.Width * ratio), (int)(GUIGraphicsContext.SkinSize.Height * ratio));
+        Log.Debug("CalcMaxClientArea clientArea 2 : clientArea {0}", clientArea);
+      }
+      Log.Debug("CalcMaxClientArea clientArea return : clientArea {0}", clientArea);
       return clientArea;
     }
 
@@ -1390,12 +1534,11 @@ namespace MediaPortal
 
       Screen screen = Screen.FromControl(this);
       var size = new Size(screen.Bounds.Width, screen.Bounds.Height);
+      var sizeMaxClient = CalcMaxClientArea();
 
       if (windowed)
       {
         size = GUIGraphicsContext.form.ClientSize;
-        var sizeMaxClient = CalcMaxClientArea();
-        
         int backupSizeWidth = 0;
         int backupSizeHeight = 0;
   
@@ -1403,12 +1546,15 @@ namespace MediaPortal
         {
           backupSizeWidth = xmlreader.GetValueAsInt("gui", "backupsizewidth", 0);
           backupSizeHeight = xmlreader.GetValueAsInt("gui", "backupsizeheight", 0);
-        }        
-        if (backupSizeWidth != 0 && backupSizeHeight != 0)
+        }
+
+        // TODO this part need to be checked because it break at runtime when BuildPresentParams is rebuilded
+        if ((backupSizeWidth != 0 && backupSizeHeight != 0) && _firstTimeLoadingParams)
         {
           size.Width = backupSizeWidth;
           size.Height = backupSizeHeight;
         }
+
         // Sanity check and replace with sensible size values if necessary
         if (size.Width < 256 || size.Height < 256 || size.Width > sizeMaxClient.Width || size.Height > sizeMaxClient.Height)
         {
@@ -1417,9 +1563,9 @@ namespace MediaPortal
           size.Height = sizeMaxClient.Height;
         }
       }
-            
-      _presentParams.BackBufferWidth  = size.Width;
-      _presentParams.BackBufferHeight = size.Height;
+
+      _presentParams.BackBufferWidth  = sizeMaxClient.Width;
+      _presentParams.BackBufferHeight = sizeMaxClient.Height;
       _presentParams.BackBufferFormat = Format.Unknown;
  
       Log.Info("D3D: BuildPresentParams ClientSize from: {0}x{1}", GUIGraphicsContext.form.ClientSize.Width, GUIGraphicsContext.form.ClientSize.Height);
@@ -1472,12 +1618,6 @@ namespace MediaPortal
                 _presentParams.BackBufferCount
                 );
       Windowed = windowed;
-
-      // enable event handlers
-      if (GUIGraphicsContext.DX9Device != null)
-      {
-        GUIGraphicsContext.DX9Device.DeviceLost += OnDeviceLost;
-      }
     }
 
     /// <summary>
@@ -1744,7 +1884,7 @@ namespace MediaPortal
         using (var xmlWriter = new MPSettings())
         {
           Log.Debug("D3D: Reset 'backupsize' values after error");
-          var size = CalcMaxClientArea();          
+          var size = CalcMaxClientArea();
           xmlWriter.SetValue("gui", "lastlocationx", 0);
           xmlWriter.SetValue("gui", "lastlocationy", 0);
           xmlWriter.SetValue("gui", "backupsizewidth", size.Width);
@@ -2428,8 +2568,11 @@ namespace MediaPortal
           _firstTimeWindowDisplayed = false;
         }
 
-        // Workaround FCU
-        ForceMpAlive();
+        if (_useFcuBlackScreenFix && AppActive)
+        {
+          // Workaround for Win10 FCU and blackscreen
+          ForceMpAlive();
+        }
 
         // Set Cursor.Position to avoid mouse cursor show up itself (for ex on video)
         Log.Debug("D3D: Force mouse cursor to false");
@@ -2697,6 +2840,10 @@ namespace MediaPortal
       {
         _firstTimeActivated = true;
       }
+
+      // Workaround for Win10 FCU and blackscreen
+      _forceMpAlive = true;
+
       base.OnGotFocus(e);
     }
 
@@ -2715,6 +2862,10 @@ namespace MediaPortal
         _lastCursorPosition = Cursor.Position;
       }
       _lostFocus = true;
+
+      // Workaround for Win10 FCU and blackscreen
+      _forceMpAlive = true;
+
       base.OnLostFocus(e);
     }
 
