@@ -5107,6 +5107,7 @@ namespace MediaPortal.Configuration.Sections
       _nfoFiles = new ArrayList();
       GetNfoFiles(tbNFOsImportPath.Text, ref _nfoFiles);
 
+
       if (_nfoFiles.Count == 0)
       {
         MessageBox.Show("No nfo files found!");
