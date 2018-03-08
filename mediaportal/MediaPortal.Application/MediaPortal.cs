@@ -1686,10 +1686,6 @@ public class MediaPortalApp : D3D, IRender
             Log.Debug("Main: WM_DISPLAYCHANGE madVR Width x Height : {0} x {1}", screen.Bounds.Size.Width, screen.Bounds.Size.Height);
           }
 
-          // Handle this message here needed for madVR
-          OnDeviceChange(ref msg);
-          PluginManager.WndProc(ref msg);
-
           // Restore bounds from the currentScreen value (to restore original startup MP screen after turned off used HDMI device
           if (!Windowed && _ignoreFullscreenResolutionChanges && !RefreshRateChanger.RefreshRateChangePending)
           {
@@ -1720,6 +1716,8 @@ public class MediaPortalApp : D3D, IRender
           // FCU Workaround
           _forceMpAlive = true;
           ForceMpAlive();
+
+          PluginManager.WndProc(ref msg);
           break;
 
         // handle device changes
@@ -2186,16 +2184,6 @@ public class MediaPortalApp : D3D, IRender
   {
     Log.Debug("Main: WM_DEVICECHANGE (Event: {0})", Enum.GetName(typeof(DBT_EVENT), msg.WParam.ToInt32()));
     RemovableDriveHelper.HandleDeviceChangedMessage(msg);
-
-    //if (msg.WParam.ToInt32() == DBT_DEVICEARRIVAL)
-    //{
-    //  if (_useFcuBlackScreenFix && AppActive)
-    //  {
-    //    // Workaround for Win10 FCU and blackscreen
-    //    _forceMpAlive = true;
-    //    Log.Debug("Main: WM_DEVICECHANGE - DBT_DEVICEARRIVAL FCU");
-    //  }
-    //}
 
     // process additional data if available
     if (msg.LParam.ToInt32() != 0)
@@ -5422,7 +5410,7 @@ public class MediaPortalApp : D3D, IRender
 
         case GUIMessage.MessageType.GUI_MSG_MADVR_SCREEN_REFRESH:
           // We need to do a refresh of screen when using madVR only if resolution screen has change during playback
-          if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR && NeedRecreateSwapChain || message.Param1 == 1)
+          if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.madVR && NeedRecreateSwapChain || message.Param1 == 1 || message.Param1 == 2)
           {
             // disable event handlers
             if (GUIGraphicsContext.DX9Device != null)
@@ -5432,6 +5420,12 @@ public class MediaPortalApp : D3D, IRender
 
             RecreateSwapChain(false);
             Log.Debug("Main: recreate swap chain for madVR done");
+
+            // Set here Vmr9Active to false to inform plugins that all stop is fully done.
+            if (message.Param1 == 2) // When stop is triggered
+            {
+              GUIGraphicsContext.Vmr9Active = false;
+            }
 
             // enable event handlers
             if (GUIGraphicsContext.DX9Device != null)
