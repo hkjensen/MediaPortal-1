@@ -767,9 +767,9 @@ DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\MediaPort
   ${LOG_TEXT} "INFO" ".: Microsoft Visual C++ Redistributable Check :."
 
   ; check if VC Redist 2008 SP1 is installed
-  ${IfNot} ${VCRedist2008IsInstalled}
-    !insertmacro ShowMissingComponent "     - Microsoft Visual C++ 2008 Service Pack 1 Redistributable Package ATL Security Update"
-  ${EndIf}
+  ;${IfNot} ${VCRedist2008IsInstalled}
+  ;  !insertmacro ShowMissingComponent "     - Microsoft Visual C++ 2008 Service Pack 1 Redistributable Package ATL Security Update"
+  ;${EndIf}
 
   ${LOG_TEXT} "INFO" "============================"
 !macroend
